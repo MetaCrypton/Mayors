@@ -7,10 +7,13 @@ describe("Integration", function() {
 
     const NUMBER_IN_LOOTBOXES = 3;
     const PRICE = 100;
+    const ALICE_MINT = 100;
+    const BOB_MINT = 10;
 
     let admin, alice, bob, charlie;
     let coder;
 
+    let token;
     let nft;
     let lootbox;
     let marketplace;
@@ -53,12 +56,18 @@ describe("Integration", function() {
     });
 
     it("Setup system", async function() {
+        token = await deploy("Token", admin, "Payment token", "PTN", admin.address);
         nft = await deploy("NFT", admin, "Mayors", "MRS", admin.address);
         lootbox = await deploy("Lootbox", admin, "Lootboxes", "LBS", admin.address, nft.address, NUMBER_IN_LOOTBOXES);
-        marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, PRICE);
+        marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, token.address, PRICE);
 
         await lootbox.connect(admin).setMarketplaceAddress(marketplace.address);
         await nft.connect(admin).setLootboxAddress(lootbox.address);
+    });
+
+    it("Mint tokens", async function() {
+        await token.connect(admin).mint(alice.address, ALICE_MINT);
+        await token.connect(admin).mint(bob.address, BOB_MINT);
     });
 
     it("Set eligibles", async function() {
@@ -66,7 +75,14 @@ describe("Integration", function() {
     });
 
     it("Buy lootbox", async function() {
+        assert.equal(await token.balanceOf(alice.address), ALICE_MINT);
+        assert.equal(await token.balanceOf(admin.address), 0);
+
+        await token.connect(alice).approve(marketplace.address, PRICE);
         await marketplace.connect(alice).buyLootbox();
+
+        assert.equal(await token.balanceOf(alice.address), 0);
+        assert.equal(await token.balanceOf(admin.address), PRICE);
     });
 
     it("Reveal lootbox", async function() {

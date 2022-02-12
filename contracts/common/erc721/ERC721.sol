@@ -153,6 +153,7 @@ contract ERC721 is IERC165, IERC721, IERC721Mintable, IERC721Metadata {
         return
             interfaceId == type(IERC721).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
+            interfaceId == type(IERC721Mintable).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 

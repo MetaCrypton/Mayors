@@ -3,6 +3,8 @@
 pragma solidity ^0.8.0;
 
 interface IMarketplace {
+    event PaymentTokenAddressSet(address paymentToken);
+
     event LootboxAddressSet(address lootboxAddress);
 
     event LootboxPriceSet(uint256 lootboxPrice);
@@ -17,6 +19,8 @@ interface IMarketplace {
 
     function setLootboxAddress(address lootboxAddress) external;
 
+    function setPaymentTokenAddress(address paymentTokenAddress) external;
+
     function setLootboxPrice(uint256 price) external;
 
     function addToEligible(address[] calldata participants) external;
@@ -27,5 +31,7 @@ interface IMarketplace {
 
     function getLootboxPrice() external view returns (uint256);
 
-    function setLootboxAddress() external view returns (address);
+    function getPaymentTokenAddress() external view returns (address);
+
+    function getLootboxAddress() external view returns (address);
 }
