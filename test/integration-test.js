@@ -22,10 +22,6 @@ describe("Integration", function() {
         epic: 2,
         legendary: 3
     };
-    const COMMON = 0;
-    const RARE = 1;
-    const EPIC = 2;
-    const LEGENDARY = 3;
 
     let admin, alice, bob, charlie;
     let coder;
