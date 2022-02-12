@@ -5,10 +5,27 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const NUMBER_IN_LOOTBOXES = 3;
+    const NUMBER_IN_LOOTBOXES = 500;
     const PRICE = 100;
     const ALICE_MINT = 100;
     const BOB_MINT = 10;
+
+    const RATES = {
+        common: 69,
+        rare: 94,
+        epic: 99,
+        legendary: 100
+    };
+    const RARITIES = {
+        common: 0,
+        rare: 1,
+        epic: 2,
+        legendary: 3
+    };
+    const COMMON = 0;
+    const RARE = 1;
+    const EPIC = 2;
+    const LEGENDARY = 3;
 
     let admin, alice, bob, charlie;
     let coder;
@@ -57,7 +74,14 @@ describe("Integration", function() {
 
     it("Setup system", async function() {
         token = await deploy("Token", admin, "Payment token", "PTN", admin.address);
-        nft = await deploy("NFT", admin, "Mayors", "MRS", admin.address);
+        nft = await deploy(
+            "NFT",
+            admin,
+            "Mayors",
+            "MRS",
+            admin.address,
+            RATES
+        );
         lootbox = await deploy("Lootbox", admin, "Lootboxes", "LBS", admin.address, nft.address, NUMBER_IN_LOOTBOXES);
         marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, token.address, PRICE);
 
@@ -90,8 +114,31 @@ describe("Integration", function() {
     });
 
     it("Validate nft ownership", async function() {
-        assert.equal(await nft.ownerOf(0), alice.address);
-        assert.equal(await nft.ownerOf(1), alice.address);
-        assert.equal(await nft.ownerOf(2), alice.address);
+        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+            assert.equal(await nft.ownerOf(i), alice.address);
+        }
+    });
+
+    it("Get rarities", async function() {
+        let commons = 0;
+        let rares = 0;
+        let epics = 0;
+        let legendaries = 0;
+        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+            let rarity = await nft.getRarity(i);
+            if (rarity == RARITIES.common) {
+                commons++;
+            } else if (rarity == RARITIES.rare) {
+                rares++;
+            } else if (rarity == RARITIES.epic) {
+                epics++;
+            } else if (rarity == RARITIES.legendary) {
+                legendaries++;
+            }
+        }
+        console.log("Commons number: ", commons);
+        console.log("Rares number: ", rares);
+        console.log("Epics number: ", epics);
+        console.log("Legendaries number: ", legendaries);
     });
 });
