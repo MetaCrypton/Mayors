@@ -9,9 +9,8 @@ import "../common/ownership/Ownable.sol";
 
 contract Marketplace is IMarketplace, Ownable {
     error NotEligible();
-    error SamePaymentTokenAddress();
-    error SameLootboxAddress();
-    error SameLootboxPrice();
+    error SameAddress();
+    error SameValue();
 
     Lootbox internal _lootbox;
     Token internal _paymentToken;
@@ -50,19 +49,19 @@ contract Marketplace is IMarketplace, Ownable {
     }
 
     function setLootboxAddress(address lootboxAddress) external override isOwner {
-        if (address(_lootbox) == lootboxAddress) revert SameLootboxAddress();
+        if (address(_lootbox) == lootboxAddress) revert SameAddress();
         _lootbox = Lootbox(lootboxAddress);
         emit LootboxAddressSet(lootboxAddress);
     }
 
     function setPaymentTokenAddress(address paymentTokenAddress) external override isOwner {
-        if (address(_paymentToken) == paymentTokenAddress) revert SamePaymentTokenAddress();
+        if (address(_paymentToken) == paymentTokenAddress) revert SameAddress();
         _paymentToken = Token(paymentTokenAddress);
         emit PaymentTokenAddressSet(paymentTokenAddress);
     }
 
     function setLootboxPrice(uint256 price) external override isOwner {
-        if (_lootboxPrice == price) revert SameLootboxPrice();
+        if (_lootboxPrice == price) revert SameValue();
         _lootboxPrice = price;
         emit LootboxPriceSet(price);
     }

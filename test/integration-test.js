@@ -5,7 +5,7 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const NUMBER_IN_LOOTBOXES = 500;
+    const NUMBER_IN_LOOTBOXES = 3;
     const PRICE = 100;
     const ALICE_MINT = 100;
     const BOB_MINT = 10;
@@ -71,12 +71,11 @@ describe("Integration", function() {
     it("Setup system", async function() {
         token = await deploy("Token", admin, "Payment token", "PTN", admin.address);
         nft = await deploy(
-            "NFT",
+            "Mayor",
             admin,
             "Mayors",
             "MRS",
-            admin.address,
-            RATES
+            admin.address
         );
         lootbox = await deploy("Lootbox", admin, "Lootboxes", "LBS", admin.address, nft.address, NUMBER_IN_LOOTBOXES);
         marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, token.address, PRICE);
@@ -106,7 +105,7 @@ describe("Integration", function() {
     });
 
     it("Reveal lootbox", async function() {
-        await lootbox.connect(alice).reveal(0);
+        await lootbox.connect(alice).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
     });
 
     it("Validate nft ownership", async function() {

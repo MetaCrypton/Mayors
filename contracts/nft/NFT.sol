@@ -8,26 +8,30 @@ import "../common/erc721/ERC721.sol";
 import "../common/ownership/Ownable.sol";
 
 contract NFT is INFT, ERC721, Ownable {
-    error NotLootboxOrOwner();
-    error SameLootboxAddress();
-    error SameRarityRates();
-    error RateOverflow();
-    error CommonRateOverflow();
-    error RareRateOverflow();
-    error EpicRateOverflow();
-    error LegendaryRateOverflow();
+    error NoPermission();
+    error SameAddress();
+    error SameRates();
+    error WrongRarity();
+    error Overflow();
     error UnexistingToken();
 
-    uint256 internal constant MAX_RATE = 100;
+    uint8 internal constant COMMON_RATE = 69;
+    uint8 internal constant RARE_RATE = 94;
+    uint8 internal constant EPIC_RATE = 99;
+    uint8 internal constant LEGENDARY_RATE = 100;
 
     address internal _lootboxAddress;
-    RarityRates internal _rarityRates;
 
     mapping(uint256 => Rarity) internal _rarities;
 
+    modifier isExistingToken(uint256 tokenId) {
+        if (_tokenIdCounter <= tokenId) revert UnexistingToken();
+        _;
+    }
+
     modifier isLootboxOrOwner() {
         if (msg.sender != _lootboxAddress && msg.sender != _owner) {
-            revert NotLootboxOrOwner();
+            revert NoPermission();
         }
         _;
     }
@@ -35,57 +39,16 @@ contract NFT is INFT, ERC721, Ownable {
     constructor(
         string memory name_,
         string memory symbol_,
-        address owner,
-        RarityRates memory rarityRates
-    ) Ownable(owner) ERC721(name_, symbol_) {
-        if (rarityRates.common > MAX_RATE) revert CommonRateOverflow();
-        if (rarityRates.rare > MAX_RATE) revert RareRateOverflow();
-        if (rarityRates.epic > MAX_RATE) revert EpicRateOverflow();
-        if (rarityRates.legendary > MAX_RATE) revert LegendaryRateOverflow();
-
-        _rarityRates = rarityRates;
-        emit RarityRatesSet(rarityRates.common, rarityRates.rare, rarityRates.epic, rarityRates.legendary);
-    }
-
-    /**
-     * @dev Mints several `tokenId`. See {ERC721-_mint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function batchMint(address owner, uint256 number)
-        external
-        override
-        isLootboxOrOwner
-        returns (uint256[] memory tokenIds)
-    {
-        tokenIds = new uint256[](number);
-        for (uint i = 0; i < number; i++) {
-            tokenIds[i] = _mintAndSetRarity(owner);
-        }
-        return tokenIds;
-    }
+        address owner
+    ) Ownable(owner) ERC721(name_, symbol_) {}
 
     function setLootboxAddress(address lootboxAddress) external override isOwner {
-        if (address(_lootboxAddress) == lootboxAddress) revert SameLootboxAddress();
+        if (address(_lootboxAddress) == lootboxAddress) revert SameAddress();
         _lootboxAddress = lootboxAddress;
         emit LootboxAddressSet(lootboxAddress);
     }
 
-    function setRarityRates(RarityRates calldata rarityRates) external override isOwner {
-        if (keccak256(abi.encode(_rarityRates)) == keccak256(abi.encode(rarityRates))) revert SameRarityRates();
-        if (rarityRates.common > MAX_RATE) revert CommonRateOverflow();
-        if (rarityRates.rare > MAX_RATE) revert RareRateOverflow();
-        if (rarityRates.epic > MAX_RATE) revert EpicRateOverflow();
-        if (rarityRates.legendary > MAX_RATE) revert LegendaryRateOverflow();
-
-        _rarityRates = rarityRates;
-        emit RarityRatesSet(rarityRates.common, rarityRates.rare, rarityRates.epic, rarityRates.legendary);
-    }
-
-    function getRarity(uint256 tokenId) external view override returns (Rarity) {
-        if (_tokenIdCounter <= tokenId) revert UnexistingToken();
+    function getRarity(uint256 tokenId) external view override isExistingToken(tokenId) returns (Rarity) {
         return _rarities[tokenId];
     }
 
@@ -93,86 +56,42 @@ contract NFT is INFT, ERC721, Ownable {
         return _lootboxAddress;
     }
 
-    function getRarityRates() external view override returns (RarityRates memory) {
-        return _rarityRates;
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_mint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function mint(address owner) public override(ERC721, IERC721Mintable) isLootboxOrOwner returns (uint256 tokenId) {
-        return _mintAndSetRarity(owner);
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_safeMint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function safeMint(address owner)
-        public
-        override(ERC721, IERC721Mintable)
-        isLootboxOrOwner
-        returns (uint256 tokenId)
-    {
-        return _safeMintAndSetRarity(owner);
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_safeMint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function safeMint(address owner, bytes memory data)
-        public
-        override(ERC721, IERC721Mintable)
-        isLootboxOrOwner
-        returns (uint256 tokenId)
-    {
-        return _safeMintAndSetRarity(owner, data);
-    }
-
     function calculateRarity(
         uint blockNumber,
         uint256 id,
         address owner
     ) public view override returns (Rarity) {
-        uint256 number = uint256(keccak256(abi.encodePacked(blockhash(blockNumber), id, owner))) % MAX_RATE;
-        if (number < _rarityRates.common) {
+        uint256 number = uint256(keccak256(abi.encodePacked(blockhash(blockNumber), id, owner))) % LEGENDARY_RATE;
+        if (number < COMMON_RATE) {
             return Rarity.Common;
-        } else if (number < _rarityRates.rare) {
+        } else if (number < RARE_RATE) {
             return Rarity.Rare;
-        } else if (number < _rarityRates.epic) {
+        } else if (number < EPIC_RATE) {
             return Rarity.Epic;
-        } else if (number < _rarityRates.legendary) {
+        } else if (number < LEGENDARY_RATE) {
             return Rarity.Legendary;
         } else {
-            revert RateOverflow();
+            revert Overflow();
         }
     }
 
     function _mintAndSetRarity(address owner) internal returns (uint256) {
-        uint256 id = super.mint(owner);
+        uint256 id = _tokenIdCounter++;
+        _mint(owner, id);
         _setRarity(id, owner);
         return id;
     }
 
     function _safeMintAndSetRarity(address owner) internal returns (uint256) {
-        uint256 id = super.safeMint(owner);
+        uint256 id = _tokenIdCounter++;
+        _safeMint(owner, id);
         _setRarity(id, owner);
         return id;
     }
 
     function _safeMintAndSetRarity(address owner, bytes memory data) internal returns (uint256) {
-        uint256 id = super.safeMint(owner, data);
+        uint256 id = _tokenIdCounter++;
+        _safeMint(owner, id, data);
         _setRarity(id, owner);
         return id;
     }

@@ -7,7 +7,6 @@ pragma solidity ^0.8.0;
 import "../interfaces/IERC721.sol";
 import "../interfaces/IERC721Receiver.sol";
 import "../interfaces/IERC721Metadata.sol";
-import "../interfaces/IERC721Mintable.sol";
 import "../libs/AddressUtils.sol";
 import "../libs/StringUtils.sol";
 import "../interfaces/IERC165.sol";
@@ -17,7 +16,7 @@ import "../interfaces/IERC165.sol";
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
-contract ERC721 is IERC165, IERC721, IERC721Mintable, IERC721Metadata {
+contract ERC721 is IERC165, IERC721, IERC721Metadata {
     using AddressUtils for address;
     using StringUtils for uint256;
 
@@ -48,42 +47,6 @@ contract ERC721 is IERC165, IERC721, IERC721Mintable, IERC721Metadata {
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_mint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function mint(address owner) public virtual override returns (uint256 tokenId) {
-        _mint(owner, _tokenIdCounter);
-        return _tokenIdCounter++;
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_safeMint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function safeMint(address owner) public virtual override returns (uint256 tokenId) {
-        _safeMint(owner, _tokenIdCounter);
-        return _tokenIdCounter++;
-    }
-
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_safeMint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function safeMint(address owner, bytes memory data) public virtual override returns (uint256 tokenId) {
-        _safeMint(owner, _tokenIdCounter, data);
-        return _tokenIdCounter++;
     }
 
     /**
@@ -153,7 +116,6 @@ contract ERC721 is IERC165, IERC721, IERC721Mintable, IERC721Metadata {
         return
             interfaceId == type(IERC721).interfaceId ||
             interfaceId == type(IERC721Metadata).interfaceId ||
-            interfaceId == type(IERC721Mintable).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 
