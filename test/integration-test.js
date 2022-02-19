@@ -8,7 +8,11 @@ describe("Integration", function() {
     const NUMBER_IN_LOOTBOXES = 3;
     const PRICE = 100;
     const ALICE_MINT = 100;
+    const CHARLIE_MINT = 200;
     const BOB_MINT = 10;
+
+    const LOOTBOX_ID_0 = 0;
+    const MAYOR_ID_0 = 0;
 
     const RATES = {
         common: 69,
@@ -26,7 +30,8 @@ describe("Integration", function() {
     let admin, alice, bob, charlie;
     let coder;
 
-    let token;
+    let token1;
+    let token2;
     let nft;
     let lootbox;
     let marketplace;
@@ -69,7 +74,8 @@ describe("Integration", function() {
     });
 
     it("Setup system", async function() {
-        token = await deploy("Token", admin, "Payment token", "PTN", admin.address);
+        token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
+        token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
         nft = await deploy(
             "Mayor",
             admin,
@@ -78,15 +84,16 @@ describe("Integration", function() {
             admin.address
         );
         lootbox = await deploy("Lootbox", admin, "Lootboxes", "LBS", admin.address, nft.address, NUMBER_IN_LOOTBOXES);
-        marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, token.address, PRICE);
+        marketplace = await deploy("Marketplace", admin, admin.address, lootbox.address, nft.address, token1.address, token2.address, PRICE);
 
         await lootbox.connect(admin).setMarketplaceAddress(marketplace.address);
         await nft.connect(admin).setLootboxAddress(lootbox.address);
     });
 
     it("Mint tokens", async function() {
-        await token.connect(admin).mint(alice.address, ALICE_MINT);
-        await token.connect(admin).mint(bob.address, BOB_MINT);
+        await token1.connect(admin).mint(alice.address, ALICE_MINT);
+        await token1.connect(admin).mint(bob.address, BOB_MINT);
+        await token2.connect(admin).mint(charlie.address, CHARLIE_MINT);
     });
 
     it("Set eligibles", async function() {
@@ -94,23 +101,38 @@ describe("Integration", function() {
     });
 
     it("Buy lootbox", async function() {
-        assert.equal(await token.balanceOf(alice.address), ALICE_MINT);
-        assert.equal(await token.balanceOf(admin.address), 0);
+        assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
+        assert.equal(await token1.balanceOf(admin.address), 0);
 
-        await token.connect(alice).approve(marketplace.address, PRICE);
+        await token1.connect(alice).approve(marketplace.address, PRICE);
         await marketplace.connect(alice).buyLootbox();
 
-        assert.equal(await token.balanceOf(alice.address), 0);
-        assert.equal(await token.balanceOf(admin.address), PRICE);
+        assert.equal(await token1.balanceOf(alice.address), 0);
+        assert.equal(await token1.balanceOf(admin.address), PRICE);
+    });
+
+    it("Sell lootbox", async function() {
+        assert.equal(await token2.balanceOf(alice.address), 0);
+        assert.equal(await token2.balanceOf(charlie.address), CHARLIE_MINT);
+        assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), alice.address);
+
+        await lootbox.connect(alice).approve(marketplace.address, LOOTBOX_ID_0);
+        await marketplace.connect(alice).setForSale({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, CHARLIE_MINT);
+        await token2.connect(charlie).approve(marketplace.address, CHARLIE_MINT);
+        await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: LOOTBOX_ID_0});
+
+        assert.equal(await token2.balanceOf(alice.address), CHARLIE_MINT);
+        assert.equal(await token2.balanceOf(charlie.address), 0);
+        assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), charlie.address);
     });
 
     it("Reveal lootbox", async function() {
-        await lootbox.connect(alice).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
+        await lootbox.connect(charlie).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
     });
 
     it("Validate nft ownership", async function() {
         for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
-            assert.equal(await nft.ownerOf(i), alice.address);
+            assert.equal(await nft.ownerOf(i), charlie.address);
         }
     });
 
@@ -135,5 +157,20 @@ describe("Integration", function() {
         console.log("Rares number: ", rares);
         console.log("Epics number: ", epics);
         console.log("Legendaries number: ", legendaries);
+    });
+
+    it("Sell mayor", async function() {
+        assert.equal(await token2.balanceOf(alice.address), CHARLIE_MINT);
+        assert.equal(await token2.balanceOf(charlie.address), 0);
+        assert.equal(await nft.ownerOf(MAYOR_ID_0), charlie.address);
+
+        await nft.connect(charlie).approve(marketplace.address, MAYOR_ID_0);
+        await marketplace.connect(charlie).setForSale({addr: nft.address, tokenId: MAYOR_ID_0}, CHARLIE_MINT);
+        await token2.connect(alice).approve(marketplace.address, CHARLIE_MINT);
+        await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_0});
+
+        assert.equal(await token2.balanceOf(alice.address), 0);
+        assert.equal(await token2.balanceOf(charlie.address), CHARLIE_MINT);
+        assert.equal(await nft.ownerOf(MAYOR_ID_0), alice.address);
     });
 });

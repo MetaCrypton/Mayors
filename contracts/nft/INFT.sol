@@ -21,7 +21,7 @@ interface INFTWithRarity {
     function getRarity(uint256 tokenId) external view returns (Rarity);
 
     function calculateRarity(
-        uint blockNumber,
+        uint256 blockNumber,
         uint256 id,
         address owner
     ) external view returns (Rarity);

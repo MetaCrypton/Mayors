@@ -12,27 +12,35 @@ contract Mayor is IMayor, NFT {
     error WrongLevel();
 
     uint256 internal constant LEVELS_NUMBER = 3;
+
     uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN0 = 100;
     uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN1 = 150;
     uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN2 = 200;
+
     uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN0 = 100;
     uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN1 = 150;
     uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN2 = 200;
+
     uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN0 = 100;
     uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN1 = 150;
     uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN2 = 200;
+
     uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN0 = 100;
     uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN1 = 150;
     uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN2 = 200;
+
     uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN0 = 0;
     uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN1 = 1;
     uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN2 = 2;
+
     uint8 internal constant VOTE_DISCOUNTS_RARE_GEN0 = 0;
     uint8 internal constant VOTE_DISCOUNTS_RARE_GEN1 = 2;
     uint8 internal constant VOTE_DISCOUNTS_RARE_GEN2 = 4;
+
     uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN0 = 0;
     uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN1 = 4;
     uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN2 = 6;
+
     uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN0 = 0;
     uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN1 = 6;
     uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN2 = 8;
@@ -53,7 +61,7 @@ contract Mayor is IMayor, NFT {
         returns (uint256[] memory tokenIds)
     {
         if (names.length > type(uint8).max) revert Overflow();
-        uint length = names.length;
+        uint256 length = names.length;
 
         tokenIds = new uint256[](length);
         for (uint256 i = 0; i < length; i++) {

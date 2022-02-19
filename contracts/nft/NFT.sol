@@ -57,7 +57,7 @@ contract NFT is INFT, ERC721, Ownable {
     }
 
     function calculateRarity(
-        uint blockNumber,
+        uint256 blockNumber,
         uint256 id,
         address owner
     ) public view override returns (Rarity) {

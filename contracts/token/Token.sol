@@ -18,8 +18,8 @@ contract Token is IToken, ERC20, Ownable {
      * @dev Mints tokens to several recipients.
      */
     function batchMint(address[] calldata recipients, uint256 value) external override isOwner {
-        uint length = recipients.length;
-        for (uint i = 0; i < length; i++) {
+        uint256 length = recipients.length;
+        for (uint256 i = 0; i < length; i++) {
             super.mint(recipients[i], value);
         }
     }
