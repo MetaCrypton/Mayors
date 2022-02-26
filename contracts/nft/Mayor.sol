@@ -13,37 +13,39 @@ contract Mayor is IMayor, NFT {
 
     uint256 internal constant LEVELS_NUMBER = 3;
 
-    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN0 = 100;
-    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN1 = 150;
-    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN2 = 200;
+    uint256 internal constant VOTE_PRICE = 0.001 ether;
 
-    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN0 = 100;
-    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN1 = 150;
-    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN2 = 200;
+    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN0 = 10;
+    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN1 = 40;
+    uint8 internal constant HASHRATE_MULTIPLIERS_COMMON_GEN2 = 120;
 
-    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN0 = 100;
-    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN1 = 150;
-    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN2 = 200;
+    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN0 = 10;
+    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN1 = 30;
+    uint8 internal constant HASHRATE_MULTIPLIERS_RARE_GEN2 = 75;
 
-    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN0 = 100;
-    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN1 = 150;
-    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN2 = 200;
+    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN0 = 10;
+    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN1 = 25;
+    uint8 internal constant HASHRATE_MULTIPLIERS_EPIC_GEN2 = 50;
 
-    uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN0 = 0;
-    uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN1 = 1;
-    uint8 internal constant VOTE_DISCOUNTS_COMMON_GEN2 = 2;
+    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN0 = 10;
+    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN1 = 20;
+    uint8 internal constant HASHRATE_MULTIPLIERS_LEGENDARY_GEN2 = 30;
 
-    uint8 internal constant VOTE_DISCOUNTS_RARE_GEN0 = 0;
-    uint8 internal constant VOTE_DISCOUNTS_RARE_GEN1 = 2;
-    uint8 internal constant VOTE_DISCOUNTS_RARE_GEN2 = 4;
+    uint8 internal constant VOTE_MULTIPLIER_COMMON_GEN0 = 100;
+    uint8 internal constant VOTE_MULTIPLIER_COMMON_GEN1 = 99;
+    uint8 internal constant VOTE_MULTIPLIER_COMMON_GEN2 = 98;
 
-    uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN0 = 0;
-    uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN1 = 4;
-    uint8 internal constant VOTE_DISCOUNTS_EPIC_GEN2 = 6;
+    uint8 internal constant VOTE_MULTIPLIER_RARE_GEN0 = 100;
+    uint8 internal constant VOTE_MULTIPLIER_RARE_GEN1 = 98;
+    uint8 internal constant VOTE_MULTIPLIER_RARE_GEN2 = 96;
 
-    uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN0 = 0;
-    uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN1 = 6;
-    uint8 internal constant VOTE_DISCOUNTS_LEGENDARY_GEN2 = 8;
+    uint8 internal constant VOTE_MULTIPLIER_EPIC_GEN0 = 100;
+    uint8 internal constant VOTE_MULTIPLIER_EPIC_GEN1 = 96;
+    uint8 internal constant VOTE_MULTIPLIER_EPIC_GEN2 = 94;
+
+    uint8 internal constant VOTE_MULTIPLIER_LEGENDARY_GEN0 = 100;
+    uint8 internal constant VOTE_MULTIPLIER_LEGENDARY_GEN1 = 94;
+    uint8 internal constant VOTE_MULTIPLIER_LEGENDARY_GEN2 = 92;
 
     mapping(uint256 => string) internal _names;
     mapping(uint256 => Level) internal _levels;
@@ -67,7 +69,7 @@ contract Mayor is IMayor, NFT {
         for (uint256 i = 0; i < length; i++) {
             if (bytes(names[i]).length == 0) revert EmptyName();
 
-            tokenIds[i] = _mintAndSetRarity(owner);
+            tokenIds[i] = _mintAndSetRarityAndHashrate(owner);
             _names[tokenIds[i]] = names[i];
             emit NameSet(tokenIds[i], names[i]);
         }
@@ -91,47 +93,48 @@ contract Mayor is IMayor, NFT {
 
     //solhint-disable code-complexity
     //solhint-disable function-max-lines
-    function getHashrateMultiplier(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint8) {
+    function getHashrate(uint256 tokenId) external view override returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
+        uint256 baseHashrate = _baseHashrates[tokenId];
 
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
-                return HASHRATE_MULTIPLIERS_COMMON_GEN0;
+                return baseHashrate * HASHRATE_MULTIPLIERS_COMMON_GEN0;
             } else if (level == Level.Gen1) {
-                return HASHRATE_MULTIPLIERS_COMMON_GEN1;
+                return baseHashrate * HASHRATE_MULTIPLIERS_COMMON_GEN1;
             } else if (level == Level.Gen2) {
-                return HASHRATE_MULTIPLIERS_COMMON_GEN2;
+                return baseHashrate * HASHRATE_MULTIPLIERS_COMMON_GEN2;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Rare) {
             if (level == Level.Gen0) {
-                return HASHRATE_MULTIPLIERS_RARE_GEN0;
+                return baseHashrate * HASHRATE_MULTIPLIERS_RARE_GEN0;
             } else if (level == Level.Gen1) {
-                return HASHRATE_MULTIPLIERS_RARE_GEN1;
+                return baseHashrate * HASHRATE_MULTIPLIERS_RARE_GEN1;
             } else if (level == Level.Gen2) {
-                return HASHRATE_MULTIPLIERS_RARE_GEN2;
+                return baseHashrate * HASHRATE_MULTIPLIERS_RARE_GEN2;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Epic) {
             if (level == Level.Gen0) {
-                return HASHRATE_MULTIPLIERS_EPIC_GEN0;
+                return baseHashrate * HASHRATE_MULTIPLIERS_EPIC_GEN0;
             } else if (level == Level.Gen1) {
-                return HASHRATE_MULTIPLIERS_EPIC_GEN1;
+                return baseHashrate * HASHRATE_MULTIPLIERS_EPIC_GEN1;
             } else if (level == Level.Gen2) {
-                return HASHRATE_MULTIPLIERS_EPIC_GEN2;
+                return baseHashrate * HASHRATE_MULTIPLIERS_EPIC_GEN2;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Legendary) {
             if (level == Level.Gen0) {
-                return HASHRATE_MULTIPLIERS_LEGENDARY_GEN0;
+                return baseHashrate * HASHRATE_MULTIPLIERS_LEGENDARY_GEN0;
             } else if (level == Level.Gen1) {
-                return HASHRATE_MULTIPLIERS_LEGENDARY_GEN1;
+                return baseHashrate * HASHRATE_MULTIPLIERS_LEGENDARY_GEN1;
             } else if (level == Level.Gen2) {
-                return HASHRATE_MULTIPLIERS_LEGENDARY_GEN2;
+                return baseHashrate * HASHRATE_MULTIPLIERS_LEGENDARY_GEN2;
             } else {
                 revert WrongLevel();
             }
@@ -140,52 +143,47 @@ contract Mayor is IMayor, NFT {
         }
     }
 
-    //solhint-enable code-complexity
-    //solhint-enable function-max-lines
-
-    //solhint-disable code-complexity
-    //solhint-disable function-max-lines
-    function getVoteDiscount(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint8) {
+    function getVotePrice(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
 
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
-                return VOTE_DISCOUNTS_COMMON_GEN0;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_COMMON_GEN0) / 100;
             } else if (level == Level.Gen1) {
-                return VOTE_DISCOUNTS_COMMON_GEN1;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_COMMON_GEN1) / 100;
             } else if (level == Level.Gen2) {
-                return VOTE_DISCOUNTS_COMMON_GEN2;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_COMMON_GEN2) / 100;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Rare) {
             if (level == Level.Gen0) {
-                return VOTE_DISCOUNTS_RARE_GEN0;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_RARE_GEN0) / 100;
             } else if (level == Level.Gen1) {
-                return VOTE_DISCOUNTS_RARE_GEN1;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_RARE_GEN1) / 100;
             } else if (level == Level.Gen2) {
-                return VOTE_DISCOUNTS_RARE_GEN2;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_RARE_GEN2) / 100;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Epic) {
             if (level == Level.Gen0) {
-                return VOTE_DISCOUNTS_EPIC_GEN0;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_EPIC_GEN0) / 100;
             } else if (level == Level.Gen1) {
-                return VOTE_DISCOUNTS_EPIC_GEN1;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_EPIC_GEN1) / 100;
             } else if (level == Level.Gen2) {
-                return VOTE_DISCOUNTS_EPIC_GEN2;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_EPIC_GEN2) / 100;
             } else {
                 revert WrongLevel();
             }
         } else if (rarity == Rarity.Legendary) {
             if (level == Level.Gen0) {
-                return VOTE_DISCOUNTS_LEGENDARY_GEN0;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_LEGENDARY_GEN0) / 100;
             } else if (level == Level.Gen1) {
-                return VOTE_DISCOUNTS_LEGENDARY_GEN1;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_LEGENDARY_GEN1) / 100;
             } else if (level == Level.Gen2) {
-                return VOTE_DISCOUNTS_LEGENDARY_GEN2;
+                return (VOTE_PRICE * VOTE_MULTIPLIER_LEGENDARY_GEN2) / 100;
             } else {
                 revert WrongLevel();
             }

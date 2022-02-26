@@ -20,11 +20,11 @@ interface INFTFromLootbox {
 interface INFTWithRarity {
     function getRarity(uint256 tokenId) external view returns (Rarity);
 
-    function calculateRarity(
+    function calculateRarityAndHashrate(
         uint256 blockNumber,
         uint256 id,
         address owner
-    ) external view returns (Rarity);
+    ) external view returns (Rarity, uint256);
 }
 
 interface INFT is IERC165, IERC721, IERC721Metadata, INFTFromLootbox, INFTWithRarity {}

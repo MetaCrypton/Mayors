@@ -16,7 +16,7 @@ interface IMayor is INFT {
 
     function getLevel(uint256 tokenId) external view returns (Level);
 
-    function getHashrateMultiplier(uint256 tokenId) external view returns (uint8);
+    function getHashrate(uint256 tokenId) external view returns (uint256);
 
-    function getVoteDiscount(uint256 tokenId) external view returns (uint8);
+    function getVotePrice(uint256 tokenId) external view returns (uint256);
 }
