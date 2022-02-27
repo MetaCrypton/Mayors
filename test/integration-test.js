@@ -24,7 +24,7 @@ describe("Integration", function() {
     const GEN1 = 1;
     const GEN2 = 2;
 
-    const MERKLE_ROOT = "0xb0ee19247f274ceb06210c631aa7a13a41b119a8fd722f697e0e11c680c17348";
+    const MERKLE_ROOT = "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80";
 
     const RATES = {
         common: 69,
@@ -149,7 +149,9 @@ describe("Integration", function() {
         assert.equal(await token1.balanceOf(admin.address), 0);
 
         await token1.connect(alice).approve(marketplace.address, PRICE);
-        await marketplace.connect(alice).buyLootbox();
+        await marketplace.connect(alice).buyLootboxMP(1, [
+            "0xec7c6f475a6906fcbf6e554651d7b7ee5189b7720b5b5156114f584164683940"
+        ]);
 
         assert.equal(await token1.balanceOf(alice.address), 0);
         assert.equal(await token1.balanceOf(admin.address), PRICE);
