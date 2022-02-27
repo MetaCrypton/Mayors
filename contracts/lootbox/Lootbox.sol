@@ -2,24 +2,14 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "./ILootbox.sol";
-import "../nft/Mayor.sol";
-import "../common/interfaces/IERC721.sol";
-import "../common/ownership/Ownable.sol";
+import "./interfaces/ILootbox.sol";
+import "./LootboxConfiguration.sol";
+import "./LootboxErrors.sol";
 
-contract Lootbox is ILootbox, ERC721, Ownable {
-    address internal _marketplaceAddress;
-    Mayor internal _nft;
-    uint8 internal _numberInLootbox;
-
-    error SameAddress();
-    error SameValue();
-    error NoPermission();
-    error Overflow();
-
+contract Lootbox is ILootboxLifecycle, ILootboxEvents, LootboxConfiguration {
     modifier isMarketplaceOrOwner() {
-        if (msg.sender != _marketplaceAddress && msg.sender != _owner) {
-            revert NoPermission();
+        if (msg.sender != _config.marketplaceAddress && msg.sender != _owner) {
+            revert LootboxErrors.NoPermission();
         }
         _;
     }
@@ -27,54 +17,17 @@ contract Lootbox is ILootbox, ERC721, Ownable {
     constructor(
         string memory name_,
         string memory symbol_,
-        address owner,
-        address token,
-        uint8 numberInLootbox
-    ) Ownable(owner) ERC721(name_, symbol_) {
-        _nft = Mayor(token);
-        _numberInLootbox = numberInLootbox;
-        emit NFTAddressSet(token);
-        emit NumberInLootboxSet(numberInLootbox);
-    }
+        address owner
+    ) LootboxConfiguration(name_, symbol_, owner) {}
 
     function reveal(uint256 tokenId, string[] calldata names) external override returns (uint256[] memory tokenIds) {
-        if (names.length != _numberInLootbox) revert Overflow();
+        if (names.length != _config.numberInLootbox) revert LootboxErrors.Overflow();
         require(_isApprovedOrOwner(msg.sender, tokenId), "reveal: reveal caller is not owner nor approved");
 
-        tokenIds = _nft.batchMint(msg.sender, names);
+        tokenIds = _config.nft.batchMint(msg.sender, names);
         _burn(tokenId);
 
         return tokenIds;
-    }
-
-    function setNFTAddress(address token) external override isOwner {
-        if (address(_nft) == token) revert SameAddress();
-        _nft = Mayor(token);
-        emit NFTAddressSet(token);
-    }
-
-    function setMarketplaceAddress(address marketplaceAddress) external override isOwner {
-        if (address(_marketplaceAddress) == marketplaceAddress) revert SameAddress();
-        _marketplaceAddress = marketplaceAddress;
-        emit MarketplaceAddressSet(marketplaceAddress);
-    }
-
-    function setNumberInLootbox(uint8 number) external override isOwner {
-        if (_numberInLootbox == number) revert SameValue();
-        _numberInLootbox = number;
-        emit NumberInLootboxSet(number);
-    }
-
-    function getNFTAddress() external view override returns (address) {
-        return address(_nft);
-    }
-
-    function getMarketplaceAddress() external view override returns (address) {
-        return _marketplaceAddress;
-    }
-
-    function getNumberInLootbox() external view override returns (uint8) {
-        return _numberInLootbox;
     }
 
     /**

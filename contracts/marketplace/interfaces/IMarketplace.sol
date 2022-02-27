@@ -2,9 +2,9 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "./MarketplaceStructs.sol";
+import "../MarketplaceStructs.sol";
 
-interface IMarketplace {
+interface IMarketplaceEvents {
     event ConfigUpdated();
 
     event AddedToEligible(address participant);
@@ -16,22 +16,30 @@ interface IMarketplace {
     event SalePriceSet(address addr, uint256 tokenId, uint256 price);
 
     event ItemBought(address addr, uint256 tokenId, uint256 price);
+}
 
-    function setForSale(Item calldata item, uint256 price) external;
-
-    function buyItem(Item calldata item) external;
-
-    function buyLootbox() external returns (uint256);
-
+interface IMarketplaceConfiguration {
     function updateConfig(MarketplaceConfig calldata config) external;
+
+    function getConfig() external view returns (MarketplaceConfig memory);
+}
+
+interface IMarketplacePrimary {
+    function buyLootbox() external returns (uint256);
 
     function addToEligible(address[] calldata participants) external;
 
     function removeFromEligible(address[] calldata participants) external;
 
     function isEligible(address participant) external view returns (bool);
+}
+
+interface IMarketplaceSecondary {
+    function setForSale(Item calldata item, uint256 price) external;
+
+    function buyItem(Item calldata item) external;
 
     function getItemPrice(Item calldata item) external view returns (uint256);
-
-    function getConfig() external view returns (MarketplaceConfig memory);
 }
+
+interface IMarketplace is IMarketplaceEvents, IMarketplaceConfiguration, IMarketplacePrimary, IMarketplaceSecondary {}

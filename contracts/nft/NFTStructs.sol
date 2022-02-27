@@ -2,6 +2,11 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
+struct NFTConfig {
+    address lootboxAddress;
+    address levelUpgradesAddress;
+}
+
 struct RarityRates {
     uint8 common;
     uint8 rare;

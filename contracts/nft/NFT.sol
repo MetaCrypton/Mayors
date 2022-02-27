@@ -3,96 +3,158 @@
 
 pragma solidity ^0.8.0;
 
-import "./INFT.sol";
-import "../common/erc721/ERC721.sol";
-import "../common/ownership/Ownable.sol";
+import "./NFTWithRarity.sol";
+import "./interfaces/INFT.sol";
+import "./NFTConstants.sol";
+import "../marketplace/MarketplaceStructs.sol";
 
-contract NFT is INFT, ERC721, Ownable {
-    error NoPermission();
-    error SameAddress();
-    error SameRates();
-    error WrongRarity();
-    error Overflow();
-    error UnexistingToken();
-
-    uint8 internal constant COMMON_RATE = 69;
-    uint8 internal constant RARE_RATE = 94;
-    uint8 internal constant EPIC_RATE = 99;
-    uint8 internal constant LEGENDARY_RATE = 100;
-
-    uint256 internal constant COMMON_RANGE_MAX = 20;
-    uint256 internal constant COMMON_RANGE_MIN = 10;
-
-    uint256 internal constant RARE_RANGE_MAX = 55;
-    uint256 internal constant RARE_RANGE_MIN = 27;
-
-    uint256 internal constant EPIC_RANGE_MAX = 275;
-    uint256 internal constant EPIC_RANGE_MIN = 125;
-
-    uint256 internal constant LEGENDARY_RANGE_MAX = 1400;
-    uint256 internal constant LEGENDARY_RANGE_MIN = 650;
-
-    address internal _lootboxAddress;
-
-    mapping(uint256 => Rarity) internal _rarities;
-    mapping(uint256 => uint256) internal _baseHashrates;
-
-    modifier isExistingToken(uint256 tokenId) {
-        if (_tokenIdCounter <= tokenId) revert UnexistingToken();
-        _;
-    }
-
-    modifier isLootboxOrOwner() {
-        if (msg.sender != _lootboxAddress && msg.sender != _owner) {
-            revert NoPermission();
-        }
-        _;
-    }
-
+contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     constructor(
         string memory name_,
         string memory symbol_,
         address owner
-    ) Ownable(owner) ERC721(name_, symbol_) {}
+    ) NFTWithRarity(name_, symbol_, owner) {}
 
-    function setLootboxAddress(address lootboxAddress) external override isOwner {
-        if (address(_lootboxAddress) == lootboxAddress) revert SameAddress();
-        _lootboxAddress = lootboxAddress;
-        emit LootboxAddressSet(lootboxAddress);
+    function batchMint(address owner, string[] calldata names)
+        external
+        override
+        isLootboxOrOwner
+        returns (uint256[] memory tokenIds)
+    {
+        if (names.length > type(uint8).max) revert NFTErrors.Overflow();
+        uint256 length = names.length;
+
+        tokenIds = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            if (bytes(names[i]).length == 0) revert NFTErrors.EmptyName();
+
+            tokenIds[i] = _mintAndSetRarityAndHashrate(owner);
+            _names[tokenIds[i]] = names[i];
+            emit NameSet(tokenIds[i], names[i]);
+        }
+
+        return tokenIds;
     }
 
-    function getRarity(uint256 tokenId) external view override isExistingToken(tokenId) returns (Rarity) {
-        return _rarities[tokenId];
+    function updateLevel(uint256 tokenId, Level level) external override isExistingToken(tokenId) {
+        if (_config.levelUpgradesAddress != msg.sender) revert NFTErrors.NotEligible();
+        if (_levels[tokenId] == level) revert NFTErrors.SameValue();
+        _levels[tokenId] = level;
+        emit LevelUpdated(tokenId, level);
     }
 
-    function getLootboxAddress() external view override returns (address) {
-        return _lootboxAddress;
+    function getName(uint256 tokenId) external view override isExistingToken(tokenId) returns (string memory) {
+        return _names[tokenId];
     }
 
-    function calculateRarityAndHashrate(
-        uint256 blockNumber,
-        uint256 id,
-        address owner
-    ) public view override returns (Rarity, uint256) {
-        uint256 random = uint256(keccak256(abi.encodePacked(blockhash(blockNumber), id, owner)));
-        uint256 rarityRate = random % LEGENDARY_RATE;
-        uint256 randomForRange = (random - (random % 10));
-        if (rarityRate < COMMON_RATE) {
-            uint256 range = COMMON_RANGE_MAX - COMMON_RANGE_MIN + 1;
-            return (Rarity.Common, (randomForRange % range) + COMMON_RANGE_MIN);
-        } else if (rarityRate < RARE_RATE) {
-            uint256 range = RARE_RANGE_MAX - RARE_RANGE_MIN + 1;
-            return (Rarity.Rare, (randomForRange % range) + RARE_RANGE_MIN);
-        } else if (rarityRate < EPIC_RATE) {
-            uint256 range = EPIC_RANGE_MAX - EPIC_RANGE_MIN + 1;
-            return (Rarity.Epic, (randomForRange % range) + EPIC_RANGE_MIN);
-        } else if (rarityRate < LEGENDARY_RATE) {
-            uint256 range = LEGENDARY_RANGE_MAX - LEGENDARY_RANGE_MIN + 1;
-            return (Rarity.Legendary, (randomForRange % range) + LEGENDARY_RANGE_MIN);
+    function getLevel(uint256 tokenId) external view override isExistingToken(tokenId) returns (Level) {
+        return _levels[tokenId];
+    }
+
+    //solhint-disable code-complexity
+    //solhint-disable function-max-lines
+
+    function getHashrate(uint256 tokenId) external view override returns (uint256) {
+        Level level = _levels[tokenId];
+        Rarity rarity = _rarities[tokenId];
+        uint256 baseHashrate = _baseHashrates[tokenId];
+
+        if (rarity == Rarity.Common) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Rare) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Epic) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Legendary) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
         } else {
-            revert Overflow();
+            revert NFTErrors.WrongRarity();
         }
     }
+
+    function getVotePrice(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
+        Level level = _levels[tokenId];
+        Rarity rarity = _rarities[tokenId];
+
+        if (rarity == Rarity.Common) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Rare) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Epic) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Legendary) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else {
+            revert NFTErrors.WrongRarity();
+        }
+    }
+
+    //solhint-enable code-complexity
+    //solhint-enable function-max-lines
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
         uint256 id = _tokenIdCounter++;

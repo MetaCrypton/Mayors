@@ -17,7 +17,6 @@ contract Ownable {
 
     constructor(address owner) {
         _owner = owner;
-        emit OwnershipTransferred(owner);
     }
 
     //solhint-disable-next-line comprehensive-interface
