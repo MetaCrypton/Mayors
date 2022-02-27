@@ -8,7 +8,6 @@ library MarketplaceErrors {
     error SameValue();
     error NotTradable();
     error AlreadyOwner();
-    error NotOwner();
     error NotOnSale();
     error SameConfig();
     error OutOfStock();
