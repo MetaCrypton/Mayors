@@ -24,6 +24,8 @@ describe("Integration", function() {
     const GEN1 = 1;
     const GEN2 = 2;
 
+    const MERKLE_ROOT = "0xb0ee19247f274ceb06210c631aa7a13a41b119a8fd722f697e0e11c680c17348";
+
     const RATES = {
         common: 69,
         rare: 94,
@@ -111,7 +113,8 @@ describe("Integration", function() {
                 admin.address,
                 PRICE,
                 LOOTBOXES_CAP,
-                LOOTBOXES_PER_ADDRESS
+                LOOTBOXES_PER_ADDRESS,
+                MERKLE_ROOT
             ],
             admin.address
         );

@@ -26,17 +26,33 @@
   "homepage": "https://github.com/MetaCrypton/MetaCrypton#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.8",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "chai": "^4.3.4",
-    "ethereum-waffle": "^3.4.0",
+    "@openzeppelin/contracts": "^4.4.0",
+    "@types/chai": "^4.2.14",
+    "@types/mocha": "^8.2.0",
+    "@types/node": "^16.11.10",
+    "axios": "^0.20.0",
+    "chai": "^4.2.0",
+    "chalk": "^4.1.0",
+    "commander": "^6.1.0",
+    "dotenv": "^10.0.0",
+    "ethereum-waffle": "^3.2.1",
+    "ethereumjs-util": "^7.0.4",
     "ethers": "^5.5.1",
-    "prettier": "^2.4.1",
+    "hardhat": "^2.0.8",
+    "hardhat-abi-exporter": "^2.0.8",
+    "hardhat-deploy": "^0.7.0-beta.44",
+    "hardhat-deploy-ethers": "^0.3.0-beta.7",
+    "hardhat-gas-reporter": "^1.0.4",
+    "mocha": "^6.2.2",
+    "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "0.0.5",
-    "hardhat": "^2.7.0"
-  },
-  "dependencies": {
-    "dotenv": "^10.0.0"
+    "rimraf": "^3.0.0",
+    "solc": "0.6.11",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.3"
   }
 }

@@ -5,9 +5,26 @@ pragma solidity ^0.8.0;
 import "./interfaces/IMarketplace.sol";
 import "./MarketplaceErrors.sol";
 import "./MarketplaceConfiguration.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, MarketplaceConfiguration {
     constructor(MarketplaceConfig memory config, address owner) MarketplaceConfiguration(config, owner) {}
+
+    function buyLootboxMP(uint256 index, bytes32[] calldata merkleProof) external override returns (uint256) {
+        if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
+        if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotEligible();
+        if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress) revert MarketplaceErrors.TooManyLootboxes();
+
+        _config.lootboxesCap--;
+        _lootboxesBought[msg.sender]++;
+
+        uint256 id = _config.lootbox.mint(msg.sender);
+        emit LootboxBought(msg.sender, address(_config.lootbox), id);
+
+        _config.paymentTokenPrimary.transferFrom(msg.sender, _config.feeAggregator, _config.lootboxPrice);
+
+        return id;
+    }
 
     function buyLootbox() external override returns (uint256) {
         if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
@@ -16,7 +33,6 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Marketpl
 
         _config.lootboxesCap--;
         _lootboxesBought[msg.sender]++;
-        _eligibleForLootbox[msg.sender] = false;
 
         uint256 id = _config.lootbox.mint(msg.sender);
         emit LootboxBought(msg.sender, address(_config.lootbox), id);
@@ -50,5 +66,18 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Marketpl
 
     function isEligible(address participant) external view override returns (bool) {
         return _eligibleForLootbox[participant];
+    }
+
+    function verifyMerkleProof(
+        uint256 index,
+        address account,
+        bytes32[] memory merkleProof
+    ) public view override returns (bool) {
+        bytes32 node = _node(index, account);
+        return MerkleProof.verify(merkleProof, _config.merkleRoot, node);
+    }
+
+    function _node(uint256 index, address account) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(index, account));
     }
 }
