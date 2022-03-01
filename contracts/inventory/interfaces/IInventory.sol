@@ -23,12 +23,15 @@ interface IInventoryEvents {
 
 interface IInventoryConfiguration {
     function updateConfig(InventoryConfig calldata config) external;
+
     function getConfig() external view returns (InventoryConfig memory);
 }
 
 interface IInventoryEther {
     function depositEther() external payable;
+
     function withdrawEther(address recipient, uint256 amount) external;
+
     function getEtherBalance() external view returns (uint256);
 }
 

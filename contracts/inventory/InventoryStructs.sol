@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "../nft/NFT.sol";
 
 struct InventoryConfig {
-    NFT nft;
+    address nftAddress;
 }
 
 enum AssetType {

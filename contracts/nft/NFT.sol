@@ -8,6 +8,7 @@ import "./interfaces/INFT.sol";
 import "./NFTConstants.sol";
 import "../marketplace/MarketplaceStructs.sol";
 import "../inventory/Inventory.sol";
+import "../inventory/InventoryStructs.sol";
 
 contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     constructor(
@@ -172,6 +173,6 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     }
 
     // function _deployInventory(address owner) internal returns (address inventory) {
-    //     return address(new Inventory(address(this), owner));
+    //     return address(new Inventory(InventoryConfig(address(this)), owner));
     // }
 }
