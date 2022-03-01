@@ -47,6 +47,7 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
+    let inventory;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -71,7 +72,7 @@ describe("Integration", function() {
 
     function getLogByFirstTopic(tx, firstTopic) {
         const logs = tx.events;
-    
+
         for(let i = 0; i < logs.length; i++) {
             if(logs[i].topics[0] === firstTopic){
                 return logs[i];
@@ -115,6 +116,14 @@ describe("Integration", function() {
                 LOOTBOXES_CAP,
                 LOOTBOXES_PER_ADDRESS,
                 MERKLE_ROOT
+            ],
+            admin.address
+        );
+        inventory = await deploy(
+            "Inventory",
+            admin,
+            [
+                nft.address,
             ],
             admin.address
         );
@@ -281,5 +290,17 @@ describe("Integration", function() {
                 assert.isAtLeast(hashrate, 19500);
             }
         }
+    });
+
+    it("Deposit and withdraw ether", async function() {
+        let balance;
+
+        await inventory.connect(admin).depositEther({value: ethers.utils.parseEther("1.0")})
+        balance = await inventory.connect(admin).getEtherBalance();
+        assert.equal(ethers.utils.formatEther(balance), "1.0");
+
+        await inventory.connect(admin).withdrawEther(admin.address, ethers.utils.parseEther("0.7"));
+        balance = await inventory.connect(admin).getEtherBalance();
+        assert.equal(ethers.utils.formatEther(balance), "0.3");
     });
 });

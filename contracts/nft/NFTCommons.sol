@@ -7,6 +7,7 @@ import "./NFTStorage.sol";
 import "./NFTErrors.sol";
 
 contract NFTCommons is NFTStorage {
+    // TODO: :)
     error HUI(address hui);
     modifier isLootboxOrOwner() {
         if (msg.sender != _config.lootboxAddress && msg.sender != _owner) {

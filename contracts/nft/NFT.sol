@@ -7,6 +7,7 @@ import "./NFTWithRarity.sol";
 import "./interfaces/INFT.sol";
 import "./NFTConstants.sol";
 import "../marketplace/MarketplaceStructs.sol";
+import "../inventory/Inventory.sol";
 
 contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     constructor(
@@ -29,6 +30,7 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
             if (bytes(names[i]).length == 0) revert NFTErrors.EmptyName();
 
             tokenIds[i] = _mintAndSetRarityAndHashrate(owner);
+            // _inventories[tokenIds[i]] = _deployInventory(owner);
             _names[tokenIds[i]] = names[i];
             emit NameSet(tokenIds[i], names[i]);
         }
@@ -168,4 +170,8 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
     }
+
+    // function _deployInventory(address owner) internal returns (address inventory) {
+    //     return address(new Inventory(address(this), owner));
+    // }
 }
