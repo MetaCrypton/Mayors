@@ -292,7 +292,7 @@ describe("Integration", function() {
         }
     });
 
-    it("Deposit and withdraw ether", async function() {
+    it("Deposit and withdraw ether in inventory", async function() {
         let balance;
 
         await inventory.connect(admin).depositEther({value: ethers.utils.parseEther("1.0")})
@@ -302,5 +302,32 @@ describe("Integration", function() {
         await inventory.connect(admin).withdrawEther(admin.address, ethers.utils.parseEther("0.7"));
         balance = await inventory.connect(admin).getEtherBalance();
         assert.equal(ethers.utils.formatEther(balance), "0.3");
+    });
+
+    it("Deposit and withdraw ERC20 in inventory", async function() {
+        let balance;
+
+        const token = await deploy("Token", admin, "Random ERC20 token", "TKN", admin.address);
+        await token.connect(admin).mint(alice.address, ALICE_MINT);
+        await token.connect(admin).mint(bob.address, BOB_MINT);
+
+        await token.connect(alice).approve(inventory.address, 10);
+        await token.connect(admin).approve(bob.address, 7);
+
+        await inventory.connect(admin).depositERC20(alice.address, token.address, 10);
+        balance = await inventory.connect(admin).getERC20Balance(token.address);
+        assert.equal(balance, 10);
+
+        await inventory.connect(admin).withdrawERC20(bob.address, token.address, 7);
+        balance = await inventory.connect(admin).getERC20Balance(token.address);
+        assert.equal(balance, 3);
+
+        assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 10);
+        assert.equal(await token.balanceOf(bob.address), BOB_MINT + 7);
+
+        const assets = await inventory.connect(admin).getERC20s(0, 2);
+        assert.equal(assets.length, 1);
+        assert.equal(assets[0].tokenAddress, token.address);
+        assert.equal(assets[0].amount, 3);
     });
 });

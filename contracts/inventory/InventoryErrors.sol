@@ -7,10 +7,10 @@ library InventoryErrors {
     error UnexistingAsset();
     error UnmatchingAssetType();
     error WrongEndIndex();
-    // error EmptyAddress();
+    error EmptyAddress();
     error ZeroAmount();
     // error UnmatchingTokenId();
-    // error UnmatchingTokenAddress();
+    error UnmatchingTokenAddress();
     // error ExistingToken();
     error DepositOverflow();
     error WithdrawOverflow();
