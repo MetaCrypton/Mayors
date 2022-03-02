@@ -330,4 +330,27 @@ describe("Integration", function() {
         assert.equal(assets[0].tokenAddress, token.address);
         assert.equal(assets[0].amount, 3);
     });
+
+    it("Deposit and withdraw ERC721 in inventory", async function() {
+        const test = await deploy("TestERC721", admin, "Random ERC721 token", "TKN");
+
+        const tx = await test.connect(alice).mint("URI");
+        const result = await tx.wait();
+        const tokenId = getIndexedEventArgs(
+            result,
+            "Transfer(address,address,uint256)",
+            2,
+        );
+
+        await test.connect(alice).approve(inventory.address, tokenId);
+        await inventory.connect(admin).depositERC721(alice.address, test.address, tokenId);
+        assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), true);
+
+        await inventory.connect(admin).withdrawERC721(bob.address, test.address, tokenId);
+        assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), false);
+
+        assert.equal(await test.balanceOf(alice.address), 0);
+        assert.equal(await test.balanceOf(bob.address), 1);
+        assert.equal(await test.balanceOf(inventory.address), 0);
+    });
 });

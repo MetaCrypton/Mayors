@@ -9,9 +9,9 @@ library InventoryErrors {
     error WrongEndIndex();
     error EmptyAddress();
     error ZeroAmount();
-    // error UnmatchingTokenId();
+    error UnmatchingTokenId();
     error UnmatchingTokenAddress();
-    // error ExistingToken();
+    error ExistingToken();
     error DepositOverflow();
     error WithdrawOverflow();
     error EtherTransferFailed();

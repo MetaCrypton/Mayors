@@ -6,7 +6,8 @@ import "./interfaces/IInventory.sol";
 import "./InventoryConfiguration.sol";
 import "./InventoryEther.sol";
 import "./InventoryERC20.sol";
+import "./InventoryERC721.sol";
 
-contract Inventory is IInventoryEvents, InventoryERC20 {
-    constructor(InventoryConfig memory config, address owner) InventoryERC20(config, owner) {}
+contract Inventory is IInventoryEvents, InventoryERC721 {
+    constructor(InventoryConfig memory config, address owner) InventoryERC721(config, owner) {}
 }

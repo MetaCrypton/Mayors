@@ -13,8 +13,8 @@ interface IInventoryEvents {
     event DepositERC20(address indexed sender, address indexed token, uint256 amount);
     event WithdrawERC20(address indexed recipient, address indexed token, uint256 amount);
 
-    // event DepositERC721(address indexed sender, address indexed token, uint256 indexed tokenId);
-    // event WithdrawERC721(address indexed recipient, address indexed token, uint256 indexed tokenId);
+    event DepositERC721(address indexed sender, address indexed token, uint256 indexed tokenId);
+    event WithdrawERC721(address indexed recipient, address indexed token, uint256 indexed tokenId);
 
     event AssetAdded(uint256 indexed id, AssetType indexed assetType, bytes data);
     event AssetUpdated(uint256 indexed id, bytes data);
@@ -53,4 +53,22 @@ interface IInventoryERC20 {
     function getERC20Balance(address token) external view returns (uint256);
 }
 
-interface IInventory is IInventoryEvents, IInventoryConfiguration, IInventoryEther, IInventoryERC20 {}
+interface IInventoryERC721 {
+    function depositERC721(
+        address from,
+        address token,
+        uint256 tokenId
+    ) external;
+
+    function withdrawERC721(
+        address recipient,
+        address token,
+        uint256 tokenId
+    ) external;
+
+    function getERC721s(uint256 startIndex, uint256 number) external view returns (ERC721Struct[] memory);
+
+    function isERC721Owner(address token, uint256 tokenId) external view returns (bool);
+}
+
+interface IInventory is IInventoryEvents, IInventoryConfiguration, IInventoryEther, IInventoryERC20, IInventoryERC721 {}
