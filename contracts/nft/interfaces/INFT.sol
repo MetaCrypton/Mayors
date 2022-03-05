@@ -38,6 +38,12 @@ interface INFTMayor {
 
     function updateLevel(uint256 tokenId, Level level) external;
 
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address owner
+    ) external;
+
     function getName(uint256 tokenId) external view returns (string memory);
 
     function getLevel(uint256 tokenId) external view returns (Level);

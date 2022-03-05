@@ -19,10 +19,4 @@ contract NFTCommons is NFTStorage {
         if (_tokenIdCounter <= tokenId) revert NFTErrors.UnexistingToken();
         _;
     }
-
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) NFTStorage(name_, symbol_, owner) {}
 }

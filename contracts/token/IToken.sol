@@ -12,4 +12,10 @@ interface IToken is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
      * @dev Mints tokens to several recipients.
      */
     function batchMint(address[] calldata recipients, uint256 value) external;
+
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address owner
+    ) external;
 }

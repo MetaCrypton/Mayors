@@ -10,13 +10,14 @@ import "../interfaces/IERC721Metadata.sol";
 import "../libs/AddressUtils.sol";
 import "../libs/StringUtils.sol";
 import "../interfaces/IERC165.sol";
+import "../../proxy/Initializable.sol";
 
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
-contract ERC721 is IERC165, IERC721, IERC721Metadata {
+contract ERC721 is Initializable, IERC165, IERC721, IERC721Metadata {
     using AddressUtils for address;
     using StringUtils for uint256;
 
@@ -40,14 +41,6 @@ contract ERC721 is IERC165, IERC721, IERC721Metadata {
 
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) internal _operatorApprovals;
-
-    /**
-     * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
-     */
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
-    }
 
     /**
      * @dev See {IERC721-approve}.
@@ -174,6 +167,14 @@ contract ERC721 is IERC165, IERC721, IERC721Metadata {
      */
     function isApprovedForAll(address owner, address operator) public view virtual override returns (bool) {
         return _operatorApprovals[owner][operator];
+    }
+
+    /**
+     * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
+     */
+    function __erc721Init(string memory name_, string memory symbol_) internal onlyInitializing {
+        _name = name_;
+        _symbol = symbol_;
     }
 
     /**

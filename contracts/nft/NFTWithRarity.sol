@@ -9,12 +9,6 @@ import "./NFTConstants.sol";
 import "../marketplace/MarketplaceStructs.sol";
 
 contract NFTWithRarity is INFTWithRarity, NFTConfiguration {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) NFTConfiguration(name_, symbol_, owner) {}
-
     function getRarity(uint256 tokenId) external view override isExistingToken(tokenId) returns (Rarity) {
         return _rarities[tokenId];
     }

@@ -47,6 +47,8 @@ interface IMarketplaceSecondary {
 
     function buyItem(Item calldata item) external;
 
+    function initialize(MarketplaceConfig memory config, address owner) external;
+
     function getItemPrice(Item calldata item) external view returns (uint256);
 }
 

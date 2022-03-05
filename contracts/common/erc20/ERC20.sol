@@ -8,6 +8,7 @@ import "../interfaces/IERC165.sol";
 import "../interfaces/IERC20.sol";
 import "../interfaces/IERC20Metadata.sol";
 import "../interfaces/IERC20Mintable.sol";
+import "../../proxy/Initializable.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -34,7 +35,7 @@ import "../interfaces/IERC20Mintable.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
+contract ERC20 is Initializable, IERC165, IERC20, IERC20Metadata, IERC20Mintable {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -43,20 +44,6 @@ contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
 
     string private _name;
     string private _symbol;
-
-    /**
-     * @dev Sets the values for {name} and {symbol}.
-     *
-     * The default value of {decimals} is 18. To select a different value for
-     * {decimals} you should overload it.
-     *
-     * All two of these values are immutable: they can only be set once during
-     * construction.
-     */
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
-    }
 
     /**
      * @dev Mints tokens. See {ERC20-_mint}.
@@ -229,6 +216,20 @@ contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
             interfaceId == type(IERC20Mintable).interfaceId ||
             interfaceId == type(IERC20Metadata).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
+    }
+
+    /**
+     * @dev Sets the values for {name} and {symbol}.
+     *
+     * The default value of {decimals} is 18. To select a different value for
+     * {decimals} you should overload it.
+     *
+     * All two of these values are immutable: they can only be set once during
+     * construction.
+     */
+    function __erc20Init(string memory name_, string memory symbol_) internal onlyInitializing {
+        _name = name_;
+        _symbol = symbol_;
     }
 
     /**

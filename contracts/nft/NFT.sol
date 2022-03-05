@@ -6,15 +6,9 @@ pragma solidity ^0.8.0;
 import "./NFTWithRarity.sol";
 import "./interfaces/INFT.sol";
 import "./NFTConstants.sol";
-import "../marketplace/MarketplaceStructs.sol";
+import "../proxy/UUPSUpgradeable.sol";
 
-contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) NFTWithRarity(name_, symbol_, owner) {}
-
+contract NFT is INFTMayor, INFTEvents, NFTWithRarity, UUPSUpgradeable {
     function batchMint(address owner, string[] calldata names)
         external
         override
@@ -156,6 +150,15 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     //solhint-enable code-complexity
     //solhint-enable function-max-lines
 
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address owner
+    ) public override initializer {
+        __nftStorageInit(name_, symbol_, owner);
+        __uupsUpgradeableInit();
+    }
+
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
@@ -168,4 +171,6 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override isOwner {}
 }

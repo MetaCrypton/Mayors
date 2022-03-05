@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "./NFTStructs.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/erc721/ERC721.sol";
+import "../proxy/Initializable.sol";
 
 contract NFTStorage is ERC721, Ownable {
     NFTConfig internal _config;
@@ -15,9 +16,12 @@ contract NFTStorage is ERC721, Ownable {
     mapping(uint256 => string) internal _names;
     mapping(uint256 => Level) internal _levels;
 
-    constructor(
+    function __nftStorageInit(
         string memory name_,
         string memory symbol_,
         address owner
-    ) ERC721(name_, symbol_) Ownable(owner) {}
+    ) internal onlyInitializing {
+        __erc721Init(name_, symbol_);
+        __ownableInit(owner);
+    }
 }

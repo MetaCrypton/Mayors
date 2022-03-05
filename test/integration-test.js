@@ -1,5 +1,5 @@
 const { expect, assert } = require("chai");
-const { ethers, waffle } = require("hardhat");
+const { ethers, upgrades, waffle } = require("hardhat");
 const { keccak256 } = require('@ethersproject/solidity');
 
 describe("Integration", function() {
@@ -48,9 +48,9 @@ describe("Integration", function() {
     let lootbox;
     let marketplace;
 
-    async function deploy(contractName, signer, ...args) {
+    async function deploy(contractName, signer, args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
-        const instance = await Factory.deploy(...args)
+        const instance = await upgrades.deployProxy(Factory, args)
         return instance.deployed()
     }
 
@@ -86,26 +86,26 @@ describe("Integration", function() {
     });
 
     it("Setup system", async function() {
-        token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
-        token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
+        token1 = await deploy("Token", admin, ["Payment token 1", "PTN1", admin.address]);
+        token2 = await deploy("Token", admin, ["Payment token 2", "PTN2", admin.address]);
         nft = await deploy(
             "NFT",
             admin,
-            "Mayors",
+            ["Mayors",
             "MRS",
-            admin.address
+            admin.address]
         );
         lootbox = await deploy(
             "Lootbox",
             admin,
-            "Lootboxes",
+            ["Lootboxes",
             "LBS",
-            admin.address
+            admin.address]
         );
         marketplace = await deploy(
             "Marketplace",
             admin,
-            [
+            [[
                 lootbox.address,
                 nft.address,
                 token1.address,
@@ -116,7 +116,7 @@ describe("Integration", function() {
                 LOOTBOXES_PER_ADDRESS,
                 MERKLE_ROOT
             ],
-            admin.address
+            admin.address]
         );
 
         await lootbox.connect(admin).updateConfig(

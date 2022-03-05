@@ -7,10 +7,9 @@ import "./MarketplaceErrors.sol";
 import "./MarketplaceConstants.sol";
 import "./MarketplacePrimary.sol";
 import "../common/interfaces/IERC721.sol";
+import "../proxy/UUPSUpgradeable.sol";
 
-contract Marketplace is IMarketplaceSecondary, IMarketplaceEvents, MarketplacePrimary {
-    constructor(MarketplaceConfig memory config, address owner) MarketplacePrimary(config, owner) {}
-
+contract Marketplace is IMarketplaceSecondary, IMarketplaceEvents, MarketplacePrimary, UUPSUpgradeable {
     function setForSale(Item calldata item, uint256 price) external override {
         if (price < MarketplaceConstants.MIN_VALID_PRICE) revert MarketplaceErrors.NotValidPrice();
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
@@ -44,6 +43,13 @@ contract Marketplace is IMarketplaceSecondary, IMarketplaceEvents, MarketplacePr
         if (price == 0) revert MarketplaceErrors.NotOnSale();
         return price;
     }
+
+    function initialize(MarketplaceConfig memory config, address owner) public override initializer {
+        __marketplaceStorageInit(config, owner);
+        __uupsUpgradeableInit();
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override isOwner {}
 
     function _payForItem(uint256 price, address owner) internal {
         _config.paymentTokenSecondary.transferFrom(msg.sender, address(this), price);

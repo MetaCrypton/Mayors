@@ -5,15 +5,10 @@ pragma solidity ^0.8.0;
 
 import "./IToken.sol";
 import "../common/erc20/ERC20.sol";
+import "../proxy/UUPSUpgradeable.sol";
 import "../common/ownership/Ownable.sol";
 
-contract Token is IToken, ERC20, Ownable {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) Ownable(owner) ERC20(name_, symbol_) {}
-
+contract Token is IToken, ERC20, Ownable, UUPSUpgradeable {
     /**
      * @dev Mints tokens to several recipients.
      */
@@ -30,4 +25,16 @@ contract Token is IToken, ERC20, Ownable {
     function mint(address recipient, uint256 value) public override(ERC20, IERC20Mintable) isOwner {
         super.mint(recipient, value);
     }
+
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address owner
+    ) public virtual override initializer {
+        __ownableInit(owner);
+        __erc20Init(name_, symbol_);
+        __uupsUpgradeableInit();
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override isOwner {}
 }

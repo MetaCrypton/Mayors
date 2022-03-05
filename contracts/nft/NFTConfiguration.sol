@@ -7,12 +7,6 @@ import "./interfaces/INFT.sol";
 import "./NFTErrors.sol";
 
 contract NFTConfiguration is INFTConfiguration, INFTEvents, NFTCommons {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) NFTCommons(name_, symbol_, owner) {}
-
     function updateConfig(NFTConfig calldata config) external override isOwner {
         if (keccak256(abi.encode(_config)) == keccak256(abi.encode(config))) revert NFTErrors.SameConfig();
         _config = config;

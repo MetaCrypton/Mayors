@@ -2,7 +2,9 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-contract Ownable {
+import "../../proxy/Initializable.sol";
+
+contract Ownable is Initializable {
     error SameOwner();
     error NotOwner();
 
@@ -15,14 +17,14 @@ contract Ownable {
         _;
     }
 
-    constructor(address owner) {
-        _owner = owner;
-    }
-
     //solhint-disable-next-line comprehensive-interface
     function transferOwnership(address to) external isOwner {
         if (_owner == to) revert SameOwner();
         _owner = to;
         emit OwnershipTransferred(to);
+    }
+
+    function __ownableInit(address owner) internal onlyInitializing {
+        _owner = owner;
     }
 }

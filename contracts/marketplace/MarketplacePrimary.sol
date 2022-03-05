@@ -8,8 +8,6 @@ import "./MarketplaceConfiguration.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, MarketplaceConfiguration {
-    constructor(MarketplaceConfig memory config, address owner) MarketplaceConfiguration(config, owner) {}
-
     function buyLootboxMP(uint256 index, bytes32[] calldata merkleProof) external override returns (uint256) {
         if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
         if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotEligible();
