@@ -23,16 +23,6 @@ interface INFTConfiguration {
     function getConfig() external view returns (NFTConfig memory);
 }
 
-interface INFTWithRarity {
-    function getRarity(uint256 tokenId) external view returns (Rarity);
-
-    function calculateRarityAndHashrate(
-        uint256 blockNumber,
-        uint256 id,
-        address owner
-    ) external view returns (Rarity, uint256);
-}
-
 interface INFTMayor {
     function batchMint(address owner, string[] calldata names) external returns (uint256[] memory tokenIds);
 
@@ -45,6 +35,8 @@ interface INFTMayor {
     function getHashrate(uint256 tokenId) external view returns (uint256);
 
     function getVotePrice(uint256 tokenId) external view returns (uint256);
+
+    function getRarity(uint256 tokenId) external view returns (Rarity);
 }
 
-interface INFT is IERC165, IERC721, IERC721Metadata, INFTConfiguration, INFTWithRarity, INFTMayor {}
+interface INFT is IERC165, IERC721, IERC721Metadata, INFTConfiguration, INFTMayor {}
