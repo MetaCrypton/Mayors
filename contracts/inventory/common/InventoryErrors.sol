@@ -15,5 +15,5 @@ library InventoryErrors {
     error DepositOverflow();
     error WithdrawOverflow();
     error EtherTransferFailed();
-    // error NotInventoryNftOwner();
+    error NotNFTOwner();
 }

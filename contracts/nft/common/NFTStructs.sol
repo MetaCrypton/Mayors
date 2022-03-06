@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 struct NFTConfig {
     address lootboxAddress;
     address levelUpgradesAddress;
+    address rarityCalculator;
 }
 
 struct RarityRates {

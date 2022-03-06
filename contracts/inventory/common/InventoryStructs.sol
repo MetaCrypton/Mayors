@@ -2,7 +2,7 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "../nft/NFT.sol";
+import "../../nft/NFT.sol";
 
 struct InventoryConfig {
     address nftAddress;
@@ -39,7 +39,3 @@ struct ERC721Struct {
     address tokenAddress;
     uint256 tokenId;
 }
-
-// TODO:
-// struct ERC1155Struct {
-// }

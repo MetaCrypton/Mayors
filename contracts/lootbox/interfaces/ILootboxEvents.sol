@@ -2,6 +2,6 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "./IInventoryEvents.sol";
-
-interface IInventory is IInventoryEvents {}
+interface ILootboxEvents {
+    event ConfigUpdated();
+}

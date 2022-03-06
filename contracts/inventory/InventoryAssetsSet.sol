@@ -2,8 +2,8 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "./InventoryStorage.sol";
-import "./InventoryErrors.sol";
+import "./common/InventoryStorage.sol";
+import "./common/InventoryErrors.sol";
 
 library InventoryAssetsSet {
     function _addAsset(

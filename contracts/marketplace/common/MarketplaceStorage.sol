@@ -3,16 +3,12 @@
 pragma solidity ^0.8.0;
 
 import "./MarketplaceStructs.sol";
-import "../common/ownership/Ownable.sol";
+import "../../common/ownership/OwnableStorage.sol";
 
-contract MarketplaceStorage is Ownable {
+contract MarketplaceStorage is OwnableStorage {
     MarketplaceConfig internal _config;
 
     mapping(address => bool) internal _eligibleForLootbox;
     mapping(address => uint256) internal _lootboxesBought;
     mapping(bytes32 => uint256) internal _salePrice;
-
-    constructor(MarketplaceConfig memory config, address owner) Ownable(owner) {
-        _config = config;
-    }
 }

@@ -2,6 +2,10 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "./IInventoryEvents.sol";
+import "../../nft/NFT.sol";
 
-interface IInventory is IInventoryEvents {}
+struct LootboxConfig {
+    uint8 numberInLootbox;
+    address marketplaceAddress;
+    NFT nft;
+}

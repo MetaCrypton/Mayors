@@ -3,12 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IMarketplace.sol";
-import "./MarketplaceErrors.sol";
-import "./MarketplaceStorage.sol";
+import "./common/MarketplaceErrors.sol";
+import "./common/MarketplaceStorage.sol";
+import "../common/ownership/Ownable.sol";
 
-contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEvents, MarketplaceStorage {
-    constructor(MarketplaceConfig memory config, address owner) MarketplaceStorage(config, owner) {}
-
+contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEvents, Ownable, MarketplaceStorage {
     function updateConfig(MarketplaceConfig calldata config) external override isOwner {
         if (keccak256(abi.encode(_config)) == keccak256(abi.encode(config))) revert MarketplaceErrors.SameConfig();
         _config = config;

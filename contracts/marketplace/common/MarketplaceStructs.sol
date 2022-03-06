@@ -2,9 +2,9 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "../lootbox/Lootbox.sol";
-import "../nft/NFT.sol";
-import "../token/Token.sol";
+import "../../lootbox/Lootbox.sol";
+import "../../nft/NFT.sol";
+import "../../token/Token.sol";
 
 struct Item {
     address addr;
