@@ -47,6 +47,7 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
+    let inventory;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -77,7 +78,7 @@ describe("Integration", function() {
 
     function getLogByFirstTopic(tx, firstTopic) {
         const logs = tx.events;
-    
+
         for(let i = 0; i < logs.length; i++) {
             if(logs[i].topics[0] === firstTopic){
                 return logs[i];
@@ -95,13 +96,13 @@ describe("Integration", function() {
         token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
         token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
 
-        const nftWithRarity = await deploy("NFTWithRarity", admin);
-        nft = await deployWithLib(
+        const rarityCalculator = await deploy("RarityCalculator", admin);
+        nft = await deploy(
             "NFT",
             admin,
-            { NFTWithRarity: nftWithRarity.address },
             "Mayors",
             "MRS",
+            "",
             admin.address
         );
         lootbox = await deploy(
@@ -109,6 +110,7 @@ describe("Integration", function() {
             admin,
             "Lootboxes",
             "LBS",
+            "",
             admin.address
         );
         marketplace = await deploy(
@@ -138,7 +140,8 @@ describe("Integration", function() {
         await nft.connect(admin).updateConfig(
             [
                 lootbox.address,
-                admin.address
+                admin.address,
+                rarityCalculator.address
             ]
         );
     });
@@ -291,4 +294,66 @@ describe("Integration", function() {
             }
         }
     });
+
+    // it("Deposit and withdraw ether in inventory", async function() {
+    //     let balance;
+
+    //     await inventory.connect(admin).depositEther({value: ethers.utils.parseEther("1.0")})
+    //     balance = await inventory.connect(admin).getEtherBalance();
+    //     assert.equal(ethers.utils.formatEther(balance), "1.0");
+
+    //     await inventory.connect(admin).withdrawEther(admin.address, ethers.utils.parseEther("0.7"));
+    //     balance = await inventory.connect(admin).getEtherBalance();
+    //     assert.equal(ethers.utils.formatEther(balance), "0.3");
+    // });
+
+    // it("Deposit and withdraw ERC20 in inventory", async function() {
+    //     let balance;
+
+    //     const token = await deploy("Token", admin, "Random ERC20 token", "TKN", admin.address);
+    //     await token.connect(admin).mint(alice.address, ALICE_MINT);
+    //     await token.connect(admin).mint(bob.address, BOB_MINT);
+
+    //     await token.connect(alice).approve(inventory.address, 10);
+    //     await token.connect(admin).approve(bob.address, 7);
+
+    //     await inventory.connect(admin).depositERC20(alice.address, token.address, 10);
+    //     balance = await inventory.connect(admin).getERC20Balance(token.address);
+    //     assert.equal(balance, 10);
+
+    //     await inventory.connect(admin).withdrawERC20(bob.address, token.address, 7);
+    //     balance = await inventory.connect(admin).getERC20Balance(token.address);
+    //     assert.equal(balance, 3);
+
+    //     assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 10);
+    //     assert.equal(await token.balanceOf(bob.address), BOB_MINT + 7);
+
+    //     const assets = await inventory.connect(admin).getERC20s(0, 2);
+    //     assert.equal(assets.length, 1);
+    //     assert.equal(assets[0].tokenAddress, token.address);
+    //     assert.equal(assets[0].amount, 3);
+    // });
+
+    // it("Deposit and withdraw ERC721 in inventory", async function() {
+    //     const test = await deploy("TestERC721", admin, "Random ERC721 token", "TKN");
+
+    //     const tx = await test.connect(alice).mint("URI");
+    //     const result = await tx.wait();
+    //     const tokenId = getIndexedEventArgs(
+    //         result,
+    //         "Transfer(address,address,uint256)",
+    //         2,
+    //     );
+
+    //     await test.connect(alice).approve(inventory.address, tokenId);
+    //     await inventory.connect(admin).depositERC721(alice.address, test.address, tokenId);
+    //     assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), true);
+
+    //     await inventory.connect(admin).withdrawERC721(bob.address, test.address, tokenId);
+    //     assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), false);
+
+    //     assert.equal(await test.balanceOf(alice.address), 0);
+    //     assert.equal(await test.balanceOf(bob.address), 1);
+    //     assert.equal(await test.balanceOf(inventory.address), 0);
+    // });
 });

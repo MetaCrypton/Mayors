@@ -11,6 +11,9 @@ contract ERC721Storage {
     // Token symbol
     string internal _symbol;
 
+    // Base uri
+    string internal _baseURI;
+
     // tokenId counter
     uint256 internal _tokenIdCounter;
 

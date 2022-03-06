@@ -5,10 +5,10 @@ pragma solidity ^0.8.0;
 
 import "./NFTERC721.sol";
 import "./NFTModifiers.sol";
-import "./NFTWithRarity.sol";
 import "./interfaces/INFT.sol";
-import "./common/NFTConstants.sol";
+import "./helpers/IRarityCalculator.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
+import "../inventory/Inventory.sol";
 
 contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     function batchMint(address owner, string[] calldata names)
@@ -24,9 +24,11 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         for (uint256 i = 0; i < length; i++) {
             if (bytes(names[i]).length == 0) revert NFTErrors.EmptyName();
 
-            tokenIds[i] = _mintAndSetRarityAndHashrate(owner);
-            _names[tokenIds[i]] = names[i];
-            emit NameSet(tokenIds[i], names[i]);
+            uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
+            tokenIds[i] = tokenId;
+            _names[tokenId] = names[i];
+            _inventories[tokenId] = _deployInventory(tokenId);
+            emit NameSet(tokenId, names[i]);
         }
 
         return tokenIds;
@@ -56,14 +58,14 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         Rarity rarity = _rarities[tokenId];
         uint256 baseHashrate = _baseHashrates[tokenId];
 
-        return NFTWithRarity.getHashrate(level, rarity, baseHashrate);
+        return IRarityCalculator(_config.rarityCalculator).getHashrate(level, rarity, baseHashrate);
     }
 
     function getVotePrice(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
 
-        return NFTWithRarity.getVotePrice(level, rarity);
+        return IRarityCalculator(_config.rarityCalculator).getVotePrice(level, rarity);
     }
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
@@ -74,8 +76,16 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     }
 
     function _setRarityAndHashrate(uint256 id, address owner) internal {
-        (Rarity rarity, uint256 hashrate) = NFTWithRarity.calculateRarityAndHashrate(block.number, id, owner);
+        (Rarity rarity, uint256 hashrate) = IRarityCalculator(_config.rarityCalculator).calculateRarityAndHashrate(
+            block.number,
+            id,
+            owner
+        );
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
+    }
+
+    function _deployInventory(uint256 tokenId) internal returns (address inventory) {
+        return address(new Inventory(tokenId));
     }
 }

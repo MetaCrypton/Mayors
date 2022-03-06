@@ -129,8 +129,7 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        string memory baseURI = _baseURI();
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId._toString())) : "";
+        return bytes(_baseURI).length > 0 ? _baseURI : "";
     }
 
     /**
@@ -173,37 +172,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
     }
 
     /**
-     * @dev Safely mints `tokenId` and transfers it to `to`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received},
-     * which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeMint(address to, uint256 tokenId) internal {
-        _safeMint(to, tokenId, "");
-    }
-
-    /**
-     * @dev Same as {xref-ERC721-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
-     * forwarded in {IERC721Receiver-onERC721Received} to contract recipients.
-     */
-    function _safeMint(
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) internal {
-        _mint(to, tokenId);
-        require(
-            _checkOnERC721Received(address(0), to, tokenId, _data),
-            "ERC721: transfer to non ERC721Receiver implementer"
-        );
-    }
-
-    /**
      * @dev Mints `tokenId` and transfers it to `to`.
      *
      * WARNING: Usage of this method is discouraged, use {_safeMint} whenever possible
@@ -219,14 +187,10 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
         require(to != address(0), "ERC721: mint to the zero address");
         require(!_exists(tokenId), "ERC721: token already minted");
 
-        _beforeTokenTransfer(address(0), to, tokenId);
-
         _balances[to] += 1;
         _owners[tokenId] = to;
 
         emit Transfer(address(0), to, tokenId);
-
-        _afterTokenTransfer(address(0), to, tokenId);
     }
 
     /**
@@ -242,8 +206,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
     function _burn(uint256 tokenId) internal {
         address owner = ownerOf(tokenId);
 
-        _beforeTokenTransfer(owner, address(0), tokenId);
-
         // Clear approvals
         _approve(address(0), tokenId);
 
@@ -251,8 +213,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
         delete _owners[tokenId];
 
         emit Transfer(owner, address(0), tokenId);
-
-        _afterTokenTransfer(owner, address(0), tokenId);
     }
 
     /**
@@ -274,8 +234,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
         require(ownerOf(tokenId) == from, "ERC721: transfer from incorrect owner");
         require(to != address(0), "ERC721: transfer to the zero address");
 
-        _beforeTokenTransfer(from, to, tokenId);
-
         // Clear approvals from the previous owner
         _approve(address(0), tokenId);
 
@@ -284,8 +242,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
         _owners[tokenId] = to;
 
         emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId);
     }
 
     /**
@@ -314,43 +270,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
     }
 
     /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s `tokenId` will be
-     * transferred to `to`.
-     * - When `from` is zero, `tokenId` will be minted for `to`.
-     * - When `to` is zero, ``from``'s `tokenId` will be burned.
-     * - `from` and `to` are never both zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal {}
-
-    /**
-     * @dev Hook that is called after any transfer of tokens. This includes
-     * minting and burning.
-     *
-     * Calling conditions:
-     *
-     * - when `from` and `to` are both non-zero.
-     * - `from` and `to` are never both zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal {}
-
-    /**
      * @dev Returns whether `tokenId` exists.
      *
      * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
@@ -373,15 +292,6 @@ contract LootboxERC721 is IERC165, IERC721, IERC721Metadata, Ownable, LootboxSto
         require(_exists(tokenId), "ERC721: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
-    }
-
-    /**
-     * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
-     * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
-     * by default, can be overriden in child contracts.
-     */
-    function _baseURI() internal pure returns (string memory) {
-        return "";
     }
 
     /**

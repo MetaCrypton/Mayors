@@ -10,10 +10,12 @@ contract NFT is NFTMayor, NFTConfiguration {
     constructor(
         string memory name_,
         string memory symbol_,
+        string memory baseURI_,
         address owner
     ) {
         _name = name_;
         _symbol = symbol_;
+        _baseURI = baseURI_;
         _owner = owner;
     }
 }

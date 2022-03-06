@@ -3,12 +3,11 @@
 
 pragma solidity ^0.8.0;
 
-import "./common/NFTConstants.sol";
-import "./common/NFTStructs.sol";
-import "./common/NFTErrors.sol";
-import "../marketplace/common/MarketplaceStructs.sol";
+import "./IRarityCalculator.sol";
+import "../common/NFTConstants.sol";
+import "../common/NFTErrors.sol";
 
-library NFTWithRarity {
+contract RarityCalculator is IRarityCalculator {
     //solhint-disable code-complexity
     //solhint-disable function-max-lines
 
@@ -16,7 +15,7 @@ library NFTWithRarity {
         uint256 blockNumber,
         uint256 id,
         address owner
-    ) external view returns (Rarity, uint256) {
+    ) external view override returns (Rarity, uint256) {
         uint256 random = uint256(keccak256(abi.encodePacked(blockhash(blockNumber), id, owner)));
         uint256 rarityRate = random % NFTConstants.LEGENDARY_RATE;
         uint256 randomForRange = (random - (random % 10));
@@ -41,7 +40,7 @@ library NFTWithRarity {
         Level level,
         Rarity rarity,
         uint256 baseHashrate
-    ) external pure returns (uint256) {
+    ) external pure override returns (uint256) {
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
                 return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN0;
@@ -87,7 +86,7 @@ library NFTWithRarity {
         }
     }
 
-    function getVotePrice(Level level, Rarity rarity) external pure returns (uint256) {
+    function getVotePrice(Level level, Rarity rarity) external pure override returns (uint256) {
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
                 return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0) / 100;

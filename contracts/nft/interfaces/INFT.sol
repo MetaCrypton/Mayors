@@ -5,10 +5,11 @@ pragma solidity ^0.8.0;
 import "./INFTMayor.sol";
 import "./INFTConfiguration.sol";
 import "./INFTEvents.sol";
+import "./INFTInventories.sol";
 import "../../common/interfaces/IERC721.sol";
 import "../../common/interfaces/IERC721Receiver.sol";
 import "../../common/interfaces/IERC721Metadata.sol";
 import "../../common/interfaces/IERC721Mintable.sol";
 import "../../common/interfaces/IERC165.sol";
 
-interface INFT is IERC165, IERC721, IERC721Metadata, INFTConfiguration, INFTMayor, INFTEvents {}
+interface INFT is IERC165, IERC721, IERC721Metadata, INFTConfiguration, INFTMayor, INFTEvents, INFTInventories {}

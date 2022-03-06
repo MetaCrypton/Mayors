@@ -136,8 +136,7 @@ contract ERC721 is IERC165, IERC721, IERC721Metadata, ERC721Storage {
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        string memory baseURI = _baseURI();
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId._toString())) : "";
+        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, tokenId._toString())) : "";
     }
 
     /**
@@ -362,15 +361,6 @@ contract ERC721 is IERC165, IERC721, IERC721Metadata, ERC721Storage {
         address to,
         uint256 tokenId
     ) internal virtual {}
-
-    /**
-     * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
-     * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
-     * by default, can be overriden in child contracts.
-     */
-    function _baseURI() internal view virtual returns (string memory) {
-        return "";
-    }
 
     /**
      * @dev Returns whether `tokenId` exists.
