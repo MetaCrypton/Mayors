@@ -3,17 +3,18 @@
 
 pragma solidity ^0.8.0;
 
+import "./NFTConfiguration.sol";
 import "./NFTWithRarity.sol";
 import "./interfaces/INFT.sol";
 import "./NFTConstants.sol";
 import "../marketplace/MarketplaceStructs.sol";
 
-contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
+contract NFT is INFTMayor, INFTEvents, NFTConfiguration {
     constructor(
         string memory name_,
         string memory symbol_,
         address owner
-    ) NFTWithRarity(name_, symbol_, owner) {}
+    ) NFTConfiguration(name_, symbol_, owner) {}
 
     function batchMint(address owner, string[] calldata names)
         external
@@ -51,110 +52,24 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
         return _levels[tokenId];
     }
 
-    //solhint-disable code-complexity
-    //solhint-disable function-max-lines
+    function getRarity(uint256 tokenId) external view override isExistingToken(tokenId) returns (Rarity) {
+        return _rarities[tokenId];
+    }
 
-    function getHashrate(uint256 tokenId) external view override returns (uint256) {
+    function getHashrate(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
         uint256 baseHashrate = _baseHashrates[tokenId];
 
-        if (rarity == Rarity.Common) {
-            if (level == Level.Gen0) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN0;
-            } else if (level == Level.Gen1) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN1;
-            } else if (level == Level.Gen2) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN2;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Rare) {
-            if (level == Level.Gen0) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN0;
-            } else if (level == Level.Gen1) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN1;
-            } else if (level == Level.Gen2) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN2;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Epic) {
-            if (level == Level.Gen0) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN0;
-            } else if (level == Level.Gen1) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN1;
-            } else if (level == Level.Gen2) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN2;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Legendary) {
-            if (level == Level.Gen0) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN0;
-            } else if (level == Level.Gen1) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN1;
-            } else if (level == Level.Gen2) {
-                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN2;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else {
-            revert NFTErrors.WrongRarity();
-        }
+        return NFTWithRarity.getHashrate(level, rarity, baseHashrate);
     }
 
     function getVotePrice(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
 
-        if (rarity == Rarity.Common) {
-            if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0) / 100;
-            } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN1) / 100;
-            } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN2) / 100;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Rare) {
-            if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN0) / 100;
-            } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN1) / 100;
-            } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN2) / 100;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Epic) {
-            if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN0) / 100;
-            } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN1) / 100;
-            } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN2) / 100;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else if (rarity == Rarity.Legendary) {
-            if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN0) / 100;
-            } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN1) / 100;
-            } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN2) / 100;
-            } else {
-                revert NFTErrors.WrongLevel();
-            }
-        } else {
-            revert NFTErrors.WrongRarity();
-        }
+        return NFTWithRarity.getVotePrice(level, rarity);
     }
-
-    //solhint-enable code-complexity
-    //solhint-enable function-max-lines
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
         uint256 id = _tokenIdCounter++;
@@ -164,7 +79,7 @@ contract NFT is INFTMayor, INFTEvents, NFTWithRarity {
     }
 
     function _setRarityAndHashrate(uint256 id, address owner) internal {
-        (Rarity rarity, uint256 hashrate) = calculateRarityAndHashrate(block.number, id, owner);
+        (Rarity rarity, uint256 hashrate) = NFTWithRarity.calculateRarityAndHashrate(block.number, id, owner);
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
     }

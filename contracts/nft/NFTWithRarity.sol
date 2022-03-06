@@ -3,22 +3,12 @@
 
 pragma solidity ^0.8.0;
 
-import "./NFTConfiguration.sol";
-import "./interfaces/INFT.sol";
 import "./NFTConstants.sol";
+import "./NFTStructs.sol";
+import "./NFTErrors.sol";
 import "../marketplace/MarketplaceStructs.sol";
 
-contract NFTWithRarity is INFTWithRarity, NFTConfiguration {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) NFTConfiguration(name_, symbol_, owner) {}
-
-    function getRarity(uint256 tokenId) external view override isExistingToken(tokenId) returns (Rarity) {
-        return _rarities[tokenId];
-    }
-
+library NFTWithRarity {
     //solhint-disable code-complexity
     //solhint-disable function-max-lines
 
@@ -26,7 +16,7 @@ contract NFTWithRarity is INFTWithRarity, NFTConfiguration {
         uint256 blockNumber,
         uint256 id,
         address owner
-    ) public view override returns (Rarity, uint256) {
+    ) external view returns (Rarity, uint256) {
         uint256 random = uint256(keccak256(abi.encodePacked(blockhash(blockNumber), id, owner)));
         uint256 rarityRate = random % NFTConstants.LEGENDARY_RATE;
         uint256 randomForRange = (random - (random % 10));
@@ -44,6 +34,102 @@ contract NFTWithRarity is INFTWithRarity, NFTConfiguration {
             return (Rarity.Legendary, (randomForRange % range) + NFTConstants.LEGENDARY_RANGE_MIN);
         } else {
             revert NFTErrors.Overflow();
+        }
+    }
+
+    function getHashrate(
+        Level level,
+        Rarity rarity,
+        uint256 baseHashrate
+    ) external pure returns (uint256) {
+        if (rarity == Rarity.Common) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_COMMON_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Rare) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_RARE_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Epic) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_EPIC_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Legendary) {
+            if (level == Level.Gen0) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN0;
+            } else if (level == Level.Gen1) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN1;
+            } else if (level == Level.Gen2) {
+                return baseHashrate * NFTConstants.HASHRATE_MULTIPLIERS_LEGENDARY_GEN2;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else {
+            revert NFTErrors.WrongRarity();
+        }
+    }
+
+    function getVotePrice(Level level, Rarity rarity) external pure returns (uint256) {
+        if (rarity == Rarity.Common) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Rare) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Epic) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else if (rarity == Rarity.Legendary) {
+            if (level == Level.Gen0) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN0) / 100;
+            } else if (level == Level.Gen1) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN1) / 100;
+            } else if (level == Level.Gen2) {
+                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN2) / 100;
+            } else {
+                revert NFTErrors.WrongLevel();
+            }
+        } else {
+            revert NFTErrors.WrongRarity();
         }
     }
 

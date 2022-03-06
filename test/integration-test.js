@@ -54,6 +54,12 @@ describe("Integration", function() {
         return instance.deployed()
     }
 
+    async function deployWithLib(contractName, signer, libs, ...args) {
+        const Factory = await ethers.getContractFactory(contractName, {libraries: libs,}, signer);
+        const instance = await Factory.deploy(...args)
+        return instance.deployed()
+    }
+
     function getIndexedEventArgsRAW(tx, eventSignature, eventNotIndexedParams) {
         const sig = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(eventSignature));
         const log = getLogByFirstTopic(tx, sig);
@@ -88,9 +94,12 @@ describe("Integration", function() {
     it("Setup system", async function() {
         token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
         token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
-        nft = await deploy(
+
+        const nftWithRarity = await deploy("NFTWithRarity", admin);
+        nft = await deployWithLib(
             "NFT",
             admin,
+            { NFTWithRarity: nftWithRarity.address },
             "Mayors",
             "MRS",
             admin.address
