@@ -12,7 +12,9 @@ contract Token is IToken, ERC20, Ownable {
         string memory name_,
         string memory symbol_,
         address owner
-    ) Ownable(owner) ERC20(name_, symbol_) {}
+    ) ERC20(name_, symbol_) {
+        _owner = owner;
+    }
 
     /**
      * @dev Mints tokens to several recipients.

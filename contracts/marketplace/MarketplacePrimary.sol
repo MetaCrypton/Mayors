@@ -3,13 +3,12 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IMarketplace.sol";
-import "./MarketplaceErrors.sol";
-import "./MarketplaceConfiguration.sol";
+import "./common/MarketplaceErrors.sol";
+import "./common/MarketplaceStorage.sol";
+import "../common/ownership/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, MarketplaceConfiguration {
-    constructor(MarketplaceConfig memory config, address owner) MarketplaceConfiguration(config, owner) {}
-
+contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable, MarketplaceStorage {
     function buyLootboxMP(uint256 index, bytes32[] calldata merkleProof) external override returns (uint256) {
         if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
         if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotEligible();

@@ -2,21 +2,17 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
-contract Ownable {
+import "./OwnableStorage.sol";
+
+contract Ownable is OwnableStorage {
     error SameOwner();
     error NotOwner();
 
     event OwnershipTransferred(address to);
 
-    address internal _owner;
-
     modifier isOwner() {
         if (msg.sender != _owner) revert NotOwner();
         _;
-    }
-
-    constructor(address owner) {
-        _owner = owner;
     }
 
     //solhint-disable-next-line comprehensive-interface

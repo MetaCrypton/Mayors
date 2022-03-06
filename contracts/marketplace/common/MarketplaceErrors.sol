@@ -12,4 +12,5 @@ library MarketplaceErrors {
     error SameConfig();
     error OutOfStock();
     error NotValidPrice();
+    error NotItemOwner();
 }

@@ -3,10 +3,10 @@
 pragma solidity ^0.8.0;
 
 import "./NFTStructs.sol";
-import "../common/ownership/Ownable.sol";
-import "../common/erc721/ERC721.sol";
+import "../../common/ownership/OwnableStorage.sol";
+import "../../common/erc721/ERC721Storage.sol";
 
-contract NFTStorage is ERC721, Ownable {
+contract NFTStorage is ERC721Storage, OwnableStorage {
     NFTConfig internal _config;
 
     mapping(uint256 => Rarity) internal _rarities;
@@ -14,10 +14,4 @@ contract NFTStorage is ERC721, Ownable {
 
     mapping(uint256 => string) internal _names;
     mapping(uint256 => Level) internal _levels;
-
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) ERC721(name_, symbol_) Ownable(owner) {}
 }

@@ -3,10 +3,10 @@
 
 pragma solidity ^0.8.0;
 
-import "./NFTConstants.sol";
-import "./NFTStructs.sol";
-import "./NFTErrors.sol";
-import "../marketplace/MarketplaceStructs.sol";
+import "./common/NFTConstants.sol";
+import "./common/NFTStructs.sol";
+import "./common/NFTErrors.sol";
+import "../marketplace/common/MarketplaceStructs.sol";
 
 library NFTWithRarity {
     //solhint-disable code-complexity
