@@ -3,16 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/ILootbox.sol";
-import "./LootboxErrors.sol";
-import "./LootboxStorage.sol";
+import "./common/LootboxErrors.sol";
+import "./common/LootboxStorage.sol";
+import "../common/ownership/Ownable.sol";
 
-contract LootboxConfiguration is ILootboxConfiguration, ILootboxEvents, LootboxStorage {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        address owner
-    ) LootboxStorage(name_, symbol_, owner) {}
-
+contract LootboxConfiguration is ILootboxConfiguration, ILootboxEvents, Ownable, LootboxStorage {
     function updateConfig(LootboxConfig calldata config) external override isOwner {
         if (keccak256(abi.encode(_config)) == keccak256(abi.encode(config))) revert LootboxErrors.SameConfig();
         _config = config;
