@@ -69,18 +69,43 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     }
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
-        uint256 id = _tokenIdCounter++;
+        (uint256 id, Rarity rarity, uint256 hashrate) = _getRarityId(_tokenIdCounter++, owner);
         _mint(owner, id);
-        _setRarityAndHashrate(id, owner);
+        _setRarityAndHashrate(id, rarity, hashrate);
         return id;
     }
 
-    function _setRarityAndHashrate(uint256 id, address owner) internal {
+    function _getRarityId(uint256 id, address owner)
+        internal
+        returns (
+            uint256,
+            Rarity,
+            uint256
+        )
+    {
         (Rarity rarity, uint256 hashrate) = IRarityCalculator(_config.rarityCalculator).calculateRarityAndHashrate(
             block.number,
             id,
             owner
         );
+        uint256 idRarity;
+        if (rarity == Rarity.Common) {
+            idRarity = _COMMONMIN + _commonIdCounter++;
+        } else if (rarity == Rarity.Rare) {
+            idRarity = _RAREMIN + _rareIdCounter++;
+        } else if (rarity == Rarity.Epic) {
+            idRarity = _EPICMIN + _epicIdCounter++;
+        } else {
+            idRarity = _LEGENDARYMIN + _legendaryIdCounter++;
+        }
+        return (idRarity, rarity, hashrate);
+    }
+
+    function _setRarityAndHashrate(
+        uint256 id,
+        Rarity rarity,
+        uint256 hashrate
+    ) internal {
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
     }

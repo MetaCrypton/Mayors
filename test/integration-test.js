@@ -1,46 +1,12 @@
 const { expect, assert } = require("chai");
 const { ethers, waffle } = require("hardhat");
 const { keccak256 } = require('@ethersproject/solidity');
+const { deploy, getIndexedEventArgsRAW, getAllIndexedEventsArgsRAW, config, coder } = require("./utils");
 
 describe("Integration", function() {
     this.timeout(20000);
 
-    const LOOTBOXES_CAP = 3;
-    const LOOTBOXES_PER_ADDRESS = 3;
-    const NUMBER_IN_LOOTBOXES = 3;
-    const PRICE = 100;
-    const ALICE_MINT = 100;
-    const CHARLIE_MINT = 200;
-    const RESALE_PRICE = CHARLIE_MINT;
-    const RESALE_FEE = RESALE_PRICE / 100;
-    const RESALE_INCOME = RESALE_PRICE - RESALE_FEE;
-    const BOB_MINT = 10;
-
-    const LOOTBOX_ID_0 = 0;
-    const MAYOR_ID_0 = 0;
-    const MAYOR_ID_1 = 1;
-
-    const GEN0 = 0;
-    const GEN1 = 1;
-    const GEN2 = 2;
-
-    const MERKLE_ROOT = "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80";
-
-    const RATES = {
-        common: 69,
-        rare: 94,
-        epic: 99,
-        legendary: 100
-    };
-    const RARITIES = {
-        common: 0,
-        rare: 1,
-        epic: 2,
-        legendary: 3
-    };
-
     let admin, alice, bob, charlie;
-    let coder;
 
     let token1;
     let token2;
@@ -48,47 +14,10 @@ describe("Integration", function() {
     let lootbox;
     let marketplace;
     let inventory;
+    let ids;
 
-    async function deploy(contractName, signer, ...args) {
-        const Factory = await ethers.getContractFactory(contractName, signer)
-        const instance = await Factory.deploy(...args)
-        return instance.deployed()
-    }
-
-    async function deployWithLib(contractName, signer, libs, ...args) {
-        const Factory = await ethers.getContractFactory(contractName, {libraries: libs,}, signer);
-        const instance = await Factory.deploy(...args)
-        return instance.deployed()
-    }
-
-    function getIndexedEventArgsRAW(tx, eventSignature, eventNotIndexedParams) {
-        const sig = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(eventSignature));
-        const log = getLogByFirstTopic(tx, sig);
-        return coder.decode(
-            eventNotIndexedParams,
-            log.data
-        );
-    }
-
-    function getIndexedEventArgs(tx, eventSignature, topic) {
-        const sig = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(eventSignature));
-        const log = getLogByFirstTopic(tx, sig);
-        return log.args[topic];
-    }
-
-    function getLogByFirstTopic(tx, firstTopic) {
-        const logs = tx.events;
-
-        for(let i = 0; i < logs.length; i++) {
-            if(logs[i].topics[0] === firstTopic){
-                return logs[i];
-            }
-        }
-        return null;
-    }
 
     it("Wallets and coder setup", async function() {
-        coder = ethers.utils.defaultAbiCoder;
         [admin, alice, bob, charlie] = await ethers.getSigners();
     });
 
@@ -122,17 +51,17 @@ describe("Integration", function() {
                 token1.address,
                 token2.address,
                 admin.address,
-                PRICE,
-                LOOTBOXES_CAP,
-                LOOTBOXES_PER_ADDRESS,
-                MERKLE_ROOT
+                config.PRICE,
+                config.LOOTBOXES_CAP,
+                config.LOOTBOXES_PER_ADDRESS,
+                config.MERKLE_ROOT
             ],
             admin.address
         );
 
         await lootbox.connect(admin).updateConfig(
             [
-                NUMBER_IN_LOOTBOXES,
+                config.NUMBER_IN_LOOTBOXES,
                 marketplace.address,
                 nft.address
             ]
@@ -147,9 +76,9 @@ describe("Integration", function() {
     });
 
     it("Mint tokens", async function() {
-        await token1.connect(admin).mint(alice.address, ALICE_MINT);
-        await token1.connect(admin).mint(bob.address, BOB_MINT);
-        await token2.connect(admin).mint(charlie.address, CHARLIE_MINT);
+        await token1.connect(admin).mint(alice.address, config.ALICE_MINT);
+        await token1.connect(admin).mint(bob.address, config.BOB_MINT);
+        await token2.connect(admin).mint(charlie.address, config.CHARLIE_MINT);
     });
 
     it("Set eligibles", async function() {
@@ -157,142 +86,152 @@ describe("Integration", function() {
     });
 
     it("Buy lootbox", async function() {
-        assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
+        assert.equal(await token1.balanceOf(alice.address), config.ALICE_MINT);
         assert.equal(await token1.balanceOf(admin.address), 0);
 
-        await token1.connect(alice).approve(marketplace.address, PRICE);
+        await token1.connect(alice).approve(marketplace.address, config.PRICE);
         await marketplace.connect(alice).buyLootboxMP(1, [
             "0xec7c6f475a6906fcbf6e554651d7b7ee5189b7720b5b5156114f584164683940"
         ]);
 
         assert.equal(await token1.balanceOf(alice.address), 0);
-        assert.equal(await token1.balanceOf(admin.address), PRICE);
+        assert.equal(await token1.balanceOf(admin.address), config.PRICE);
     });
 
     it("Sell lootbox", async function() {
         assert.equal(await token2.balanceOf(alice.address), 0);
-        assert.equal(await token2.balanceOf(charlie.address), CHARLIE_MINT);
-        assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), alice.address);
+        assert.equal(await token2.balanceOf(charlie.address), config.CHARLIE_MINT);
+        assert.equal(await lootbox.ownerOf(config.LOOTBOX_ID_0), alice.address);
 
-        await lootbox.connect(alice).approve(marketplace.address, LOOTBOX_ID_0);
-        await marketplace.connect(alice).setForSale({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, RESALE_PRICE);
-        await token2.connect(charlie).approve(marketplace.address, RESALE_PRICE);
-        await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: LOOTBOX_ID_0});
+        await lootbox.connect(alice).approve(marketplace.address, config.LOOTBOX_ID_0);
+        await marketplace.connect(alice).setForSale({addr: lootbox.address, tokenId: config.LOOTBOX_ID_0}, config.RESALE_PRICE);
+        await token2.connect(charlie).approve(marketplace.address, config.RESALE_PRICE);
+        await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: config.LOOTBOX_ID_0});
 
-        assert.equal(await token2.balanceOf(alice.address), RESALE_INCOME);
-        assert.equal(await token2.balanceOf(admin.address), RESALE_FEE);
+        assert.equal(await token2.balanceOf(alice.address), config.RESALE_INCOME);
+        assert.equal(await token2.balanceOf(admin.address), config.RESALE_FEE);
         assert.equal(await token2.balanceOf(charlie.address), 0);
-        assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), charlie.address);
+        assert.equal(await lootbox.ownerOf(config.LOOTBOX_ID_0), charlie.address);
     });
 
     it("Reveal lootbox", async function() {
-        await lootbox.connect(charlie).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
+        let tx = await lootbox.connect(charlie).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
+        const result = await tx.wait();
+        const eventArgs = getAllIndexedEventsArgsRAW(
+            result,
+            "NameSet(uint256,string)",
+            ["uint256", "string"],
+        );
+        ids = eventArgs.map(function(event){
+            return event[0].toNumber();
+        });
     });
 
     it("Validate nft ownership", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        ids.forEach(async function(i){
             assert.equal(await nft.ownerOf(i), charlie.address);
-        }
+        });
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        ids.forEach(async function(i){
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
 
-            if (rarity == RARITIES.common) {
+            if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 1000000000000000);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
-            } else if (rarity == RARITIES.rare) {
+            } else if (rarity == config.RARITIES.rare) {
                 assert.equal(votePrice, 1000000000000000);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
-            } else if (rarity == RARITIES.epic) {
+            } else if (rarity == config.RARITIES.epic) {
                 assert.equal(votePrice, 1000000000000000);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
-            } else if (rarity == RARITIES.legendary) {
+            } else if (rarity == config.RARITIES.legendary) {
                 assert.equal(votePrice, 1000000000000000);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
-        }
+        });
     });
 
     it("Sell mayor", async function() {
-        await token2.connect(admin).transfer(alice.address, RESALE_FEE);
+        const MAYOR_ID_0 = ids[0];
+        await token2.connect(admin).transfer(alice.address, config.RESALE_FEE);
 
-        assert.equal(await token2.balanceOf(alice.address), RESALE_PRICE);
+        assert.equal(await token2.balanceOf(alice.address), config.RESALE_PRICE);
         assert.equal(await token2.balanceOf(charlie.address), 0);
         assert.equal(await nft.ownerOf(MAYOR_ID_0), charlie.address);
 
         await nft.connect(charlie).approve(marketplace.address, MAYOR_ID_0);
-        await marketplace.connect(charlie).setForSale({addr: nft.address, tokenId: MAYOR_ID_0}, RESALE_PRICE);
-        await token2.connect(alice).approve(marketplace.address, RESALE_PRICE);
+        await marketplace.connect(charlie).setForSale({addr: nft.address, tokenId: MAYOR_ID_0}, config.RESALE_PRICE);
+        await token2.connect(alice).approve(marketplace.address, config.RESALE_PRICE);
         await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_0});
 
         assert.equal(await token2.balanceOf(alice.address), 0);
-        assert.equal(await token2.balanceOf(charlie.address), RESALE_INCOME);
-        assert.equal(await token2.balanceOf(admin.address), RESALE_FEE);
+        assert.equal(await token2.balanceOf(charlie.address), config.RESALE_INCOME);
+        assert.equal(await token2.balanceOf(admin.address), config.RESALE_FEE);
         assert.equal(await nft.ownerOf(MAYOR_ID_0), alice.address);
     });
 
     it("Update levels to GEN1. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
-            await nft.updateLevel(i, GEN1);
+        ids.forEach(async function(i){
+            await nft.updateLevel(i, config.GEN1);
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
 
-            if (rarity == RARITIES.common) {
+            if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 990000000000000);
                 assert.isAtMost(hashrate, 800);
                 assert.isAtLeast(hashrate, 400);
-            } else if (rarity == RARITIES.rare) {
+            } else if (rarity == config.RARITIES.rare) {
                 assert.equal(votePrice, 980000000000000);
                 assert.isAtMost(hashrate, 1650);
                 assert.isAtLeast(hashrate, 810);
-            } else if (rarity == RARITIES.epic) {
+            } else if (rarity == config.RARITIES.epic) {
                 assert.equal(votePrice, 960000000000000);
                 assert.isAtMost(hashrate, 6875);
                 assert.isAtLeast(hashrate, 3125);
-            } else if (rarity == RARITIES.legendary) {
+            } else if (rarity == config.RARITIES.legendary) {
                 assert.equal(votePrice, 940000000000000);
                 assert.isAtMost(hashrate, 28000);
                 assert.isAtLeast(hashrate, 13000);
             }
-        }
+        });
     });
 
     it("Update levels to GEN2. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
-            await nft.updateLevel(i, GEN2);
+        ids.forEach(async function(i){
+            await nft.updateLevel(i, config.GEN2);
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
 
-            if (rarity == RARITIES.common) {
+            if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 980000000000000);
                 assert.isAtMost(hashrate, 2400);
                 assert.isAtLeast(hashrate, 1200);
-            } else if (rarity == RARITIES.rare) {
+            } else if (rarity == config.RARITIES.rare) {
                 assert.equal(votePrice, 960000000000000);
                 assert.isAtMost(hashrate, 4125);
                 assert.isAtLeast(hashrate, 2025);
-            } else if (rarity == RARITIES.epic) {
+            } else if (rarity == config.RARITIES.epic) {
                 assert.equal(votePrice, 940000000000000);
                 assert.isAtMost(hashrate, 13750);
                 assert.isAtLeast(hashrate, 6250);
-            } else if (rarity == RARITIES.legendary) {
+            } else if (rarity == config.RARITIES.legendary) {
                 assert.equal(votePrice, 920000000000000);
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
             }
-        }
+        });
     });
 
     // it("Deposit and withdraw ether in inventory", async function() {
