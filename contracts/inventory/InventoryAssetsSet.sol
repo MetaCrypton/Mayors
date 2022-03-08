@@ -7,10 +7,7 @@ import "./common/InventoryErrors.sol";
 import "./common/InventoryStructs.sol";
 
 library InventoryAssetsSet {
-    function _addAsset(
-        AssetsSet storage assets,
-        Asset memory asset
-    ) internal {
+    function _addAsset(AssetsSet storage assets, Asset memory asset) internal {
         assets.assets.push(asset);
         assets.assetIndexById[asset.id] = assets.assets.length;
     }
@@ -59,9 +56,8 @@ library InventoryAssetsSet {
         uint256 endIndex = startIndex + number;
         if (endIndex > assets.assets.length) revert InventoryErrors.WrongEndIndex();
 
-        // asset type => number of assets
-        mapping(uint8 => uint256) memory counts = assets._countTokensByType(startIndex, endIndex);
-        Asset[] memory assetsToReturn = new Asset[](counts[assetType]);
+        uint256 count = _countTokensByType(assets, startIndex, endIndex, assetType);
+        Asset[] memory assetsToReturn = new Asset[](count);
         for (uint256 i = startIndex; i < endIndex; i++) {
             if (assets.assets[i].assetType == assetType) {
                 assetsToReturn[i - startIndex] = assets.assets[i];
@@ -73,16 +69,16 @@ library InventoryAssetsSet {
     function _countTokensByType(
         AssetsSet storage assets,
         uint256 startIndex,
-        uint256 endIndex
-    ) internal view returns (mapping(uint8 => uint256) memory) {
-        // asset type => number of assets
-        mapping(uint8 => uint256) memory counts;
+        uint256 endIndex,
+        AssetType assetType
+    ) internal view returns (uint256) {
+        uint256 counter = 0;
         for (uint256 i = startIndex; i < endIndex; i++) {
-            uint8 assetType = uint8(assets.assets[i].assetType);
-            // TODO: check of empty?
-            counts[assetType]++;
+            if (assetType == assets.assets[i].assetType) {
+                counter++;
+            }
         }
-        return counts;
+        return counter;
     }
 
     function _getAssetByIndex(AssetsSet storage assets, uint256 index) internal view returns (Asset storage) {

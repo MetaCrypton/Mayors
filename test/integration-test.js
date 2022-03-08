@@ -295,6 +295,23 @@ describe("Integration", function() {
         }
     });
 
+    it("Store ether in inventory", async function() {
+        const tokenId = MAYOR_ID_0;
+        const owner = alice;
+        let inventoryAddress = await nft.connect(admin).getInventory(tokenId);
+        let inventory = await ethers.getContractAt("IInventory", inventoryAddress);
+
+        const asset = {
+            id: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether")),
+            assetType: 0,
+            data: coder.encode(['uint256'], [ethers.utils.parseEther("1.0")])
+        };
+
+        await inventory.connect(owner).storeAsset(asset);
+        const assets = await inventory.connect(admin).getStoredAssets(0, 1, asset.assetType);
+        assert.equal(assets.length, 1);
+    });
+
     // it("Deposit and withdraw ether in inventory", async function() {
     //     let balance;
 

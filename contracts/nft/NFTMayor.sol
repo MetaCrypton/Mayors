@@ -4,13 +4,13 @@
 pragma solidity ^0.8.0;
 
 import "./NFTERC721.sol";
-import "./NFTModifiers.sol";
+import "./NFTInventories.sol";
 import "./interfaces/INFT.sol";
 import "./helpers/IRarityCalculator.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
 import "../inventory/Inventory.sol";
 
-contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
+contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
     function batchMint(address owner, string[] calldata names)
         external
         override
