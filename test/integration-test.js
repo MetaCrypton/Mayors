@@ -134,10 +134,13 @@ describe("Integration", function() {
     });
 
     it("Get rarities & hashrates", async function() {
-        ids.forEach(async function(i){
-            let rarity = await nft.getRarity(i);
-            let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+        let id=0;
+
+        for (let i = 0; i < config.NUMBER_IN_LOOTBOXES; i++) {
+            id = ids[i];
+            let rarity = await nft.getRarity(id);
+            let hashrate = await nft.getHashrate(id);
+            let votePrice = await nft.getVotePrice(id);
 
             if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 1000000000000000);
@@ -156,7 +159,7 @@ describe("Integration", function() {
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
-        });
+        }
     });
 
     it("Sell mayor", async function() {
@@ -179,12 +182,15 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN1. Get new hashrates", async function() {
-        ids.forEach(async function(i){
-            await nft.updateLevel(i, config.GEN1);
+        let id=0;
 
-            let rarity = await nft.getRarity(i);
-            let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+        for (let i = 0; i < config.NUMBER_IN_LOOTBOXES; i++) {
+            id = ids[i];
+            await nft.updateLevel(id, config.GEN1);
+
+            let rarity = await nft.getRarity(id);
+            let hashrate = await nft.getHashrate(id);
+            let votePrice = await nft.getVotePrice(id);
 
             if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 990000000000000);
@@ -203,16 +209,19 @@ describe("Integration", function() {
                 assert.isAtMost(hashrate, 28000);
                 assert.isAtLeast(hashrate, 13000);
             }
-        });
+        }
     });
 
     it("Update levels to GEN2. Get new hashrates", async function() {
-        ids.forEach(async function(i){
-            await nft.updateLevel(i, config.GEN2);
+        let id=0;
 
-            let rarity = await nft.getRarity(i);
-            let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+        for (let i = 0; i < config.NUMBER_IN_LOOTBOXES; i++) {
+            id = ids[i];
+            await nft.updateLevel(id, config.GEN2);
+
+            let rarity = await nft.getRarity(id);
+            let hashrate = await nft.getHashrate(id);
+            let votePrice = await nft.getVotePrice(id);
 
             if (rarity == config.RARITIES.common) {
                 assert.equal(votePrice, 980000000000000);
@@ -231,7 +240,7 @@ describe("Integration", function() {
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
             }
-        });
+        }
     });
 
     // it("Deposit and withdraw ether in inventory", async function() {
