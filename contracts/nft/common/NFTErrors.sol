@@ -14,4 +14,5 @@ library NFTErrors {
     error EmptyName();
     error SameValue();
     error WrongLevel();
+    error MaxLevel();
 }

@@ -40,7 +40,7 @@ library NFTConstants {
     uint8 internal constant EPIC_RATE = 99;
     uint8 internal constant LEGENDARY_RATE = 100;
 
-    uint256 internal constant LEVELS_NUMBER = 3;
+    uint8 internal constant MAX_LEVEL = 2;
 
     uint256 internal constant VOTE_PRICE = 0.001 ether;
 
