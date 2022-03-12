@@ -38,6 +38,11 @@ describe("Integration", function() {
         epic: 2,
         legendary: 3
     };
+    const ASSET_TYPES = {
+        Ether: 0,
+        ERC20: 1,
+        ERC721: 2,
+    }
 
     let admin, alice, bob, charlie;
     let coder;
@@ -293,6 +298,61 @@ describe("Integration", function() {
                 assert.isAtLeast(hashrate, 19500);
             }
         }
+    });
+
+    it("Setup inventory", async function() {
+        let inventoryAddress = await nft.connect(admin).getInventory(MAYOR_ID_0);
+        inventory = await ethers.getContractAt("IInventory", inventoryAddress);
+    });
+
+    it("Store ether in inventory", async function() {
+        const asset = {
+            id: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether")),
+            assetType: ASSET_TYPES.Ether,
+            data: coder.encode(['uint256'], [ethers.utils.parseEther("1.0")])
+        };
+        await inventory.connect(alice).storeAsset(asset);
+
+        const assets = await inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether);
+        assert.equal(assets.length, 1);
+
+        // wrong assetType
+        await expect(inventory.connect(alice).storeAsset({
+            id: asset.id,
+            assetType: 123,
+            data: asset.data,
+        })).to.be.reverted;
+    });
+
+    it("Update already existed asset in inventory", async function() {
+        const asset = {
+            id: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether")),
+            assetType: ASSET_TYPES.Ether,
+            data: coder.encode(['uint256'], [ethers.utils.parseEther("1000.0")])
+        };
+        await inventory.connect(alice).storeAsset(asset);
+
+        const assets = await inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether);
+        assert.equal(assets.length, 1);
+        assert.equal(assets[0].id.toHexString(), asset.id);
+        assert.equal(assets[0].assetType, asset.assetType);
+        assert.equal(assets[0].data, asset.data);
+    });
+
+    it("Remove stored asset from inventory", async function() {
+        const etherAssetId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether"));
+        await inventory.connect(alice).removeAsset(etherAssetId);
+
+        await expect(
+            inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether)
+        ).to.be.revertedWith('WrongEndIndex()');
+        const assets = await inventory.connect(admin).getStoredAssets(0, 0, ASSET_TYPES.Ether);
+        assert.equal(assets.length, 0);
+
+        // wrong asset id - already removed
+        await expect(
+            inventory.connect(alice).removeAsset(etherAssetId)
+        ).to.be.revertedWith('UnexistingAsset()');
     });
 
     // it("Deposit and withdraw ether in inventory", async function() {

@@ -4,16 +4,12 @@ pragma solidity ^0.8.0;
 
 import "./common/InventoryStorage.sol";
 import "./common/InventoryErrors.sol";
+import "./common/InventoryStructs.sol";
 
 library InventoryAssetsSet {
-    function _addAsset(
-        AssetsSet storage assets,
-        uint256 id,
-        AssetType assetType,
-        bytes memory data
-    ) internal {
-        assets.assets.push(Asset(id, assetType, data));
-        assets.assetIndexById[id] = assets.assets.length;
+    function _addAsset(AssetsSet storage assets, Asset memory asset) internal {
+        assets.assets.push(asset);
+        assets.assetIndexById[asset.id] = assets.assets.length;
     }
 
     function _updateAsset(Asset storage asset, bytes memory data) internal {
@@ -49,6 +45,40 @@ library InventoryAssetsSet {
             assetsToReturn[i - startIndex] = assets.assets[i];
         }
         return assetsToReturn;
+    }
+
+    function _getAssetsByType(
+        AssetsSet storage assets,
+        uint256 startIndex,
+        uint256 number,
+        AssetType assetType
+    ) internal view returns (Asset[] memory) {
+        uint256 endIndex = startIndex + number;
+        if (endIndex > assets.assets.length) revert InventoryErrors.WrongEndIndex();
+
+        uint256 count = _countTokensByType(assets, startIndex, endIndex, assetType);
+        Asset[] memory assetsToReturn = new Asset[](count);
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            if (assets.assets[i].assetType == assetType) {
+                assetsToReturn[i - startIndex] = assets.assets[i];
+            }
+        }
+        return assetsToReturn;
+    }
+
+    function _countTokensByType(
+        AssetsSet storage assets,
+        uint256 startIndex,
+        uint256 endIndex,
+        AssetType assetType
+    ) internal view returns (uint256) {
+        uint256 counter = 0;
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            if (assetType == assets.assets[i].assetType) {
+                counter++;
+            }
+        }
+        return counter;
     }
 
     function _getAssetByIndex(AssetsSet storage assets, uint256 index) internal view returns (Asset storage) {
