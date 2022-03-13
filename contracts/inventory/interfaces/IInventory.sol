@@ -2,7 +2,8 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
+import "./IInventoryERC20.sol";
 import "./IInventoryERC721.sol";
 import "./IInventoryEvents.sol";
 
-interface IInventory is IInventoryERC721 {}
+interface IInventory is IInventoryERC721, IInventoryERC20 {}

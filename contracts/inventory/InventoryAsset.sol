@@ -42,23 +42,10 @@ contract InventoryAsset is IInventoryAsset, InventoryNFTOwner {
     //     return Asset(id, AssetType.Ether, data);
     // }
 
-    // function packERC20Asset(address token, uint256 amount) external pure override returns (Asset memory) {
-    //     uint256 id = uint256(keccak256(abi.encodePacked(token)));
-    //     bytes memory data = abi.encode(ERC20Struct(token, amount));
-    //     return Asset(id, AssetType.ERC20, data);
-    // }
-
     // function unpackEtherAsset(Asset memory asset) external pure override returns (uint256 amount) {
     //     if (asset.assetType != AssetType.Ether) revert InventoryErrors.UnmatchingAssetType();
 
     //     EtherStruct memory data = abi.decode(asset.data, (EtherStruct));
     //     return data.amount;
-    // }
-
-    // function unpackERC20Asset(Asset memory asset) external pure override returns (address token, uint256 amount) {
-    //     if (asset.assetType != AssetType.ERC20) revert InventoryErrors.UnmatchingAssetType();
-
-    //     ERC20Struct memory data = abi.decode(asset.data, (ERC20Struct));
-    //     return (data.tokenAddress, data.amount);
     // }
 }
