@@ -246,7 +246,7 @@ describe("Integration", function() {
 
     it("Update levels to GEN1. Get new hashrates", async function() {
         for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
-            await nft.updateLevel(i, GEN1);
+            await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
@@ -274,7 +274,7 @@ describe("Integration", function() {
 
     it("Update levels to GEN2. Get new hashrates", async function() {
         for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
-            await nft.updateLevel(i, GEN2);
+            await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);

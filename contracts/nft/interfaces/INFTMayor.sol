@@ -7,7 +7,7 @@ import "../common/NFTStructs.sol";
 interface INFTMayor {
     function batchMint(address owner, string[] calldata names) external returns (uint256[] memory tokenIds);
 
-    function updateLevel(uint256 tokenId, Level level) external;
+    function updateLevel(uint256 tokenId) external;
 
     function getName(uint256 tokenId) external view returns (string memory);
 

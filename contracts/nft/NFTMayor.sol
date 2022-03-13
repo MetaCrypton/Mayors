@@ -7,6 +7,7 @@ import "./NFTERC721.sol";
 import "./NFTInventories.sol";
 import "./interfaces/INFT.sol";
 import "./helpers/IRarityCalculator.sol";
+import "./common/NFTConstants.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
 import "../inventory/Inventory.sol";
 
@@ -34,11 +35,12 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         return tokenIds;
     }
 
-    function updateLevel(uint256 tokenId, Level level) external override isExistingToken(tokenId) {
+    function updateLevel(uint256 tokenId) external override isExistingToken(tokenId) isOwner {
         if (_config.levelUpgradesAddress != msg.sender) revert NFTErrors.NotEligible();
-        if (_levels[tokenId] == level) revert NFTErrors.SameValue();
-        _levels[tokenId] = level;
-        emit LevelUpdated(tokenId, level);
+        uint8 currentLevel = uint8(_levels[tokenId]);
+        if (currentLevel == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
+        _levels[tokenId] = Level(currentLevel + 1);
+        emit LevelUpdated(tokenId, Level(currentLevel + 1));
     }
 
     function getName(uint256 tokenId) external view override isExistingToken(tokenId) returns (string memory) {
