@@ -15,6 +15,10 @@ contract NFTStorage is ERC721Storage, OwnableStorage {
     mapping(uint256 => string) internal _names;
     mapping(uint256 => Level) internal _levels;
 
-    // Mapping from token ID to inventory address
-    mapping(uint256 => address) internal _inventories;
+    // hat counter
+    uint256 internal _hatIdCounter = 1;
+    mapping(uint256 => uint256) internal _hatId;
+    // in hand counter
+    uint256 internal _inHandIdCounter = 1;
+    mapping(uint256 => uint256) internal _inHandId;
 }

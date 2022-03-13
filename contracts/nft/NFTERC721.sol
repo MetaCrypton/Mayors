@@ -129,7 +129,12 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, tokenId._toString())) : "";
+        string memory baseURI = _baseURI;
+        uint256 hatId = _hatId[tokenId];
+        uint256 inHandId = _inHandId[tokenId];
+
+        return
+            string(abi.encodePacked(baseURI, "/hat=", _uintToASCIIBytes(hatId), "&hand=", _uintToASCIIBytes(inHandId)));
     }
 
     /**
@@ -270,6 +275,35 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         require(_exists(tokenId), "ERC721: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
+    }
+
+    /**
+     * @notice Original Copyright (c) 2015-2016 Oraclize SRL
+     * @notice Original Copyright (c) 2016 Oraclize LTD
+     * @notice Modified Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
+     * @dev Converts an unsigned integer to its bytes representation
+     * @notice https://github.com/provable-things/ethereum-api/blob/master/oraclizeAPI_0.5.sol#L1045
+     * @param num The number to be converted
+     * @return Bytes representation of the number
+     */
+    function _uintToASCIIBytes(uint num) internal pure returns (bytes memory) {
+        uint _i = num;
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        while (_i != 0) {
+            bstr[len - 1] = bytes1(uint8(48 + (_i % 10)));
+            _i /= 10;
+            len--;
+        }
+        return bstr;
     }
 
     /**

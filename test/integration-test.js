@@ -5,6 +5,8 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
+    const BASE_URI = "https://mayors.io"
+
     const LOOTBOXES_CAP = 3;
     const LOOTBOXES_PER_ADDRESS = 3;
     const NUMBER_IN_LOOTBOXES = 3;
@@ -52,7 +54,6 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
-    let inventory;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -107,7 +108,7 @@ describe("Integration", function() {
             admin,
             "Mayors",
             "MRS",
-            "",
+            BASE_URI,
             admin.address
         );
         lootbox = await deploy(
@@ -251,6 +252,11 @@ describe("Integration", function() {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
+            let hat = await nft.getHat(i);
+
+            assert.equal(hat, i + 1);
+
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/hat="+(i+1)+"&hand="+0);
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 990000000000000);
@@ -279,6 +285,13 @@ describe("Integration", function() {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
+            let hat = await nft.getHat(i);
+            let inHand = await nft.getInHand(i);
+
+            assert.equal(hat, i + 1);
+            assert.equal(inHand, i + 1);
+
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/hat="+(i+1)+"&hand="+(i+1));
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 980000000000000);
@@ -299,121 +312,4 @@ describe("Integration", function() {
             }
         }
     });
-
-    it("Setup inventory", async function() {
-        let inventoryAddress = await nft.connect(admin).getInventory(MAYOR_ID_0);
-        inventory = await ethers.getContractAt("IInventory", inventoryAddress);
-    });
-
-    it("Store ether in inventory", async function() {
-        const asset = {
-            id: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether")),
-            assetType: ASSET_TYPES.Ether,
-            data: coder.encode(['uint256'], [ethers.utils.parseEther("1.0")])
-        };
-        await inventory.connect(alice).storeAsset(asset);
-
-        const assets = await inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether);
-        assert.equal(assets.length, 1);
-
-        // wrong assetType
-        await expect(inventory.connect(alice).storeAsset({
-            id: asset.id,
-            assetType: 123,
-            data: asset.data,
-        })).to.be.reverted;
-    });
-
-    it("Update already existed asset in inventory", async function() {
-        const asset = {
-            id: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether")),
-            assetType: ASSET_TYPES.Ether,
-            data: coder.encode(['uint256'], [ethers.utils.parseEther("1000.0")])
-        };
-        await inventory.connect(alice).storeAsset(asset);
-
-        const assets = await inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether);
-        assert.equal(assets.length, 1);
-        assert.equal(assets[0].id.toHexString(), asset.id);
-        assert.equal(assets[0].assetType, asset.assetType);
-        assert.equal(assets[0].data, asset.data);
-    });
-
-    it("Remove stored asset from inventory", async function() {
-        const etherAssetId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Ether"));
-        await inventory.connect(alice).removeAsset(etherAssetId);
-
-        await expect(
-            inventory.connect(admin).getStoredAssets(0, 1, ASSET_TYPES.Ether)
-        ).to.be.revertedWith('WrongEndIndex()');
-        const assets = await inventory.connect(admin).getStoredAssets(0, 0, ASSET_TYPES.Ether);
-        assert.equal(assets.length, 0);
-
-        // wrong asset id - already removed
-        await expect(
-            inventory.connect(alice).removeAsset(etherAssetId)
-        ).to.be.revertedWith('UnexistingAsset()');
-    });
-
-    // it("Deposit and withdraw ether in inventory", async function() {
-    //     let balance;
-
-    //     await inventory.connect(admin).depositEther({value: ethers.utils.parseEther("1.0")})
-    //     balance = await inventory.connect(admin).getEtherBalance();
-    //     assert.equal(ethers.utils.formatEther(balance), "1.0");
-
-    //     await inventory.connect(admin).withdrawEther(admin.address, ethers.utils.parseEther("0.7"));
-    //     balance = await inventory.connect(admin).getEtherBalance();
-    //     assert.equal(ethers.utils.formatEther(balance), "0.3");
-    // });
-
-    // it("Deposit and withdraw ERC20 in inventory", async function() {
-    //     let balance;
-
-    //     const token = await deploy("Token", admin, "Random ERC20 token", "TKN", admin.address);
-    //     await token.connect(admin).mint(alice.address, ALICE_MINT);
-    //     await token.connect(admin).mint(bob.address, BOB_MINT);
-
-    //     await token.connect(alice).approve(inventory.address, 10);
-    //     await token.connect(admin).approve(bob.address, 7);
-
-    //     await inventory.connect(admin).depositERC20(alice.address, token.address, 10);
-    //     balance = await inventory.connect(admin).getERC20Balance(token.address);
-    //     assert.equal(balance, 10);
-
-    //     await inventory.connect(admin).withdrawERC20(bob.address, token.address, 7);
-    //     balance = await inventory.connect(admin).getERC20Balance(token.address);
-    //     assert.equal(balance, 3);
-
-    //     assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 10);
-    //     assert.equal(await token.balanceOf(bob.address), BOB_MINT + 7);
-
-    //     const assets = await inventory.connect(admin).getERC20s(0, 2);
-    //     assert.equal(assets.length, 1);
-    //     assert.equal(assets[0].tokenAddress, token.address);
-    //     assert.equal(assets[0].amount, 3);
-    // });
-
-    // it("Deposit and withdraw ERC721 in inventory", async function() {
-    //     const test = await deploy("TestERC721", admin, "Random ERC721 token", "TKN");
-
-    //     const tx = await test.connect(alice).mint("URI");
-    //     const result = await tx.wait();
-    //     const tokenId = getIndexedEventArgs(
-    //         result,
-    //         "Transfer(address,address,uint256)",
-    //         2,
-    //     );
-
-    //     await test.connect(alice).approve(inventory.address, tokenId);
-    //     await inventory.connect(admin).depositERC721(alice.address, test.address, tokenId);
-    //     assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), true);
-
-    //     await inventory.connect(admin).withdrawERC721(bob.address, test.address, tokenId);
-    //     assert.equal(await inventory.connect(admin).isERC721Owner(test.address, tokenId), false);
-
-    //     assert.equal(await test.balanceOf(alice.address), 0);
-    //     assert.equal(await test.balanceOf(bob.address), 1);
-    //     assert.equal(await test.balanceOf(inventory.address), 0);
-    // });
 });

@@ -4,14 +4,13 @@
 pragma solidity ^0.8.0;
 
 import "./NFTERC721.sol";
-import "./NFTInventories.sol";
+import "./NFTModifiers.sol";
 import "./interfaces/INFT.sol";
 import "./helpers/IRarityCalculator.sol";
 import "./common/NFTConstants.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
-import "../inventory/Inventory.sol";
 
-contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
+contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     function batchMint(address owner, string[] calldata names)
         external
         override
@@ -28,7 +27,6 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
             uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
             tokenIds[i] = tokenId;
             _names[tokenId] = names[i];
-            _inventories[tokenId] = _deployInventory(tokenId);
             emit NameSet(tokenId, names[i]);
         }
 
@@ -37,10 +35,17 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
 
     function updateLevel(uint256 tokenId) external override isExistingToken(tokenId) isOwner {
         if (_config.levelUpgradesAddress != msg.sender) revert NFTErrors.NotEligible();
-        uint8 currentLevel = uint8(_levels[tokenId]);
-        if (currentLevel == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
-        _levels[tokenId] = Level(currentLevel + 1);
-        emit LevelUpdated(tokenId, Level(currentLevel + 1));
+        Level currentLevel = _levels[tokenId];
+        if (uint8(currentLevel) == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
+        _levels[tokenId] = Level(uint8(currentLevel) + 1);
+
+        if (currentLevel == Level.Gen0) {
+            _hatId[tokenId] = _hatIdCounter++;
+        } else if (currentLevel == Level.Gen1) {
+            _inHandId[tokenId] = _inHandIdCounter++;
+        }
+
+        emit LevelUpdated(tokenId, Level(uint8(currentLevel) + 1));
     }
 
     function getName(uint256 tokenId) external view override isExistingToken(tokenId) returns (string memory) {
@@ -70,6 +75,18 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         return IRarityCalculator(_config.rarityCalculator).getVotePrice(level, rarity);
     }
 
+    function getHat(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
+        uint256 result = _hatId[tokenId];
+        if (result == 0) revert NFTErrors.NoHat();
+        return result;
+    }
+
+    function getInHand(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
+        uint256 result = _inHandId[tokenId];
+        if (result == 0) revert NFTErrors.NoInHand();
+        return result;
+    }
+
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
@@ -85,9 +102,5 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         );
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
-    }
-
-    function _deployInventory(uint256 tokenId) internal returns (address inventory) {
-        return address(new Inventory(tokenId));
     }
 }

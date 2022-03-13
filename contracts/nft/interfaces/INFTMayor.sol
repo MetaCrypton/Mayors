@@ -18,4 +18,8 @@ interface INFTMayor {
     function getVotePrice(uint256 tokenId) external view returns (uint256);
 
     function getRarity(uint256 tokenId) external view returns (Rarity);
+
+    function getHat(uint256 tokenId) external view returns (uint256);
+
+    function getInHand(uint256 tokenId) external view returns (uint256);
 }
