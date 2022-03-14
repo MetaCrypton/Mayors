@@ -22,4 +22,6 @@ interface INFTMayor {
     function getHat(uint256 tokenId) external view returns (uint256);
 
     function getInHand(uint256 tokenId) external view returns (uint256);
+
+    function getTokenSeasonId(uint256 tokenId) external view returns (uint256);
 }

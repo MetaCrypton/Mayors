@@ -19,8 +19,8 @@ describe("Integration", function() {
     const BOB_MINT = 10;
 
     const LOOTBOX_ID_0 = 0;
-    const MAYOR_ID_0 = 0;
     const MAYOR_ID_1 = 1;
+    const MAYOR_ID_2 = 2;
 
     const GEN0 = 0;
     const GEN1 = 1;
@@ -129,10 +129,10 @@ describe("Integration", function() {
                 token2.address,
                 admin.address,
                 PRICE,
-                LOOTBOXES_CAP,
                 LOOTBOXES_PER_ADDRESS,
                 MERKLE_ROOT
             ],
+            LOOTBOXES_CAP,
             admin.address
         );
 
@@ -181,7 +181,7 @@ describe("Integration", function() {
         assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), alice.address);
 
         await lootbox.connect(alice).approve(marketplace.address, LOOTBOX_ID_0);
-        await marketplace.connect(alice).setForSale({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, RESALE_PRICE);
+        await marketplace.connect(alice).setItemPrice({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, RESALE_PRICE);
         await token2.connect(charlie).approve(marketplace.address, RESALE_PRICE);
         await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: LOOTBOX_ID_0});
 
@@ -196,13 +196,13 @@ describe("Integration", function() {
     });
 
     it("Validate nft ownership", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = 1; i < NUMBER_IN_LOOTBOXES + 1; i++) {
             assert.equal(await nft.ownerOf(i), charlie.address);
         }
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = 1; i < NUMBER_IN_LOOTBOXES + 1; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let votePrice = await nft.getVotePrice(i);
@@ -232,21 +232,21 @@ describe("Integration", function() {
 
         assert.equal(await token2.balanceOf(alice.address), RESALE_PRICE);
         assert.equal(await token2.balanceOf(charlie.address), 0);
-        assert.equal(await nft.ownerOf(MAYOR_ID_0), charlie.address);
+        assert.equal(await nft.ownerOf(MAYOR_ID_1), charlie.address);
 
-        await nft.connect(charlie).approve(marketplace.address, MAYOR_ID_0);
-        await marketplace.connect(charlie).setForSale({addr: nft.address, tokenId: MAYOR_ID_0}, RESALE_PRICE);
+        await nft.connect(charlie).approve(marketplace.address, MAYOR_ID_1);
+        await marketplace.connect(charlie).setItemPrice({addr: nft.address, tokenId: MAYOR_ID_1}, RESALE_PRICE);
         await token2.connect(alice).approve(marketplace.address, RESALE_PRICE);
-        await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_0});
+        await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_1});
 
         assert.equal(await token2.balanceOf(alice.address), 0);
         assert.equal(await token2.balanceOf(charlie.address), RESALE_INCOME);
         assert.equal(await token2.balanceOf(admin.address), RESALE_FEE);
-        assert.equal(await nft.ownerOf(MAYOR_ID_0), alice.address);
+        assert.equal(await nft.ownerOf(MAYOR_ID_1), alice.address);
     });
 
     it("Update levels to GEN1. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = 1; i < NUMBER_IN_LOOTBOXES + 1; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -254,9 +254,9 @@ describe("Integration", function() {
             let votePrice = await nft.getVotePrice(i);
             let hat = await nft.getHat(i);
 
-            assert.equal(hat, i + 1);
+            assert.equal(hat, i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/hat="+(i+1)+"&hand="+0);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+rarity+"/"+1+"/"+i+"/"+0);
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 990000000000000);
@@ -279,7 +279,7 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN2. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = 1; i < NUMBER_IN_LOOTBOXES + 1; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -288,10 +288,10 @@ describe("Integration", function() {
             let hat = await nft.getHat(i);
             let inHand = await nft.getInHand(i);
 
-            assert.equal(hat, i + 1);
-            assert.equal(inHand, i + 1);
+            assert.equal(hat, i);
+            assert.equal(inHand, i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/hat="+(i+1)+"&hand="+(i+1));
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+rarity+"/"+2+"/"+i+"/"+i);
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 980000000000000);

@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "./common/NFTStorage.sol";
+import "./common/NFTErrors.sol";
 import "./interfaces/INFT.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC721.sol";
@@ -129,12 +130,29 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        string memory baseURI = _baseURI;
+        uint256 seasonId = _getTokenSeasonId(tokenId);
+        string memory baseURI = _seasons[seasonId].uri;
+
+        Rarity rarity = _rarities[tokenId];
+        Level level = _levels[tokenId];
+
         uint256 hatId = _hatId[tokenId];
         uint256 inHandId = _inHandId[tokenId];
 
         return
-            string(abi.encodePacked(baseURI, "/hat=", _uintToASCIIBytes(hatId), "&hand=", _uintToASCIIBytes(inHandId)));
+            string(
+                abi.encodePacked(
+                    baseURI,
+                    "/",
+                    _uintToASCIIBytes(uint8(rarity)),
+                    "/",
+                    _uintToASCIIBytes(uint8(level)),
+                    "/",
+                    _uintToASCIIBytes(hatId),
+                    "/",
+                    _uintToASCIIBytes(inHandId)
+                )
+            );
     }
 
     /**
@@ -275,6 +293,23 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         require(_exists(tokenId), "ERC721: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
+    }
+
+    function _getTokenSeasonId(uint256 tokenId) internal view returns (uint256) {
+        uint256 length = _seasons.length;
+        if (length == 0) revert NFTErrors.NoSeasons();
+
+        if (tokenId == 0 || length == 1) {
+            return 0;
+        } else {
+            for (uint256 i = 0; i < length; i++) {
+                uint256 lastId = _seasons[i].lastId;
+                if (lastId >= tokenId) {
+                    return i;
+                }
+            }
+        }
+        return 0; // lastId == 0 -> ongoing season
     }
 
     /**

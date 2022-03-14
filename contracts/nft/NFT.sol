@@ -13,9 +13,10 @@ contract NFT is NFTMayor, NFTConfiguration {
         string memory baseURI_,
         address owner
     ) {
+        _tokenIdCounter = 1;
         _name = name_;
         _symbol = symbol_;
-        _baseURI = baseURI_;
+        _seasons.push(Season(baseURI_, 0));
         _owner = owner;
     }
 }

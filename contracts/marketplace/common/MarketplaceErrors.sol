@@ -6,6 +6,7 @@ library MarketplaceErrors {
     error NotEligible();
     error TooManyLootboxes();
     error SameValue();
+    error NullValue();
     error NotTradable();
     error AlreadyOwner();
     error NotOnSale();

@@ -14,4 +14,10 @@ interface IMarketplaceEvents {
     event SalePriceSet(address addr, uint256 tokenId, uint256 price);
 
     event ItemBought(address addr, uint256 tokenId, uint256 price);
+
+    event SetLootboxesForSale(uint256 number);
+
+    event AddedLootboxesForSale(uint256 number);
+
+    event RemovedLootboxesForSale(uint256 number);
 }

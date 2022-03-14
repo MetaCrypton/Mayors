@@ -14,6 +14,28 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
         emit ConfigUpdated();
     }
 
+    function setLootboxesForSale(uint256 number) external override isOwner {
+        if (number == _lootboxesForSale) revert MarketplaceErrors.SameValue();
+        _lootboxesForSale = number;
+        emit SetLootboxesForSale(number);
+    }
+
+    function addLootboxesForSale(uint256 number) external override isOwner {
+        if (number == 0) revert MarketplaceErrors.NullValue();
+        _lootboxesForSale += number;
+        emit AddedLootboxesForSale(number);
+    }
+
+    function burnLootboxesForSale(uint256 number) external override isOwner {
+        if (number == 0) revert MarketplaceErrors.NullValue();
+        if (_lootboxesForSale <= number) {
+            _lootboxesForSale = 0;
+        } else {
+            _lootboxesForSale -= number;
+        }
+        emit RemovedLootboxesForSale(number);
+    }
+
     function getConfig() external view override returns (MarketplaceConfig memory) {
         return _config;
     }

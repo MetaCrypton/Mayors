@@ -7,5 +7,11 @@ import "../common/MarketplaceStructs.sol";
 interface IMarketplaceConfiguration {
     function updateConfig(MarketplaceConfig calldata config) external;
 
+    function setLootboxesForSale(uint256 number) external;
+
+    function addLootboxesForSale(uint256 number) external;
+
+    function burnLootboxesForSale(uint256 number) external;
+
     function getConfig() external view returns (MarketplaceConfig memory);
 }

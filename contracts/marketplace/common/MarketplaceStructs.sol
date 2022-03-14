@@ -18,7 +18,6 @@ struct MarketplaceConfig {
     Token paymentTokenSecondary;
     address feeAggregator;
     uint256 lootboxPrice;
-    uint256 lootboxesCap;
     uint256 lootboxesPerAddress;
     bytes32 merkleRoot;
 }

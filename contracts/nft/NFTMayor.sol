@@ -87,6 +87,10 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         return result;
     }
 
+    function getTokenSeasonId(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
+        return _getTokenSeasonId(tokenId);
+    }
+
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);

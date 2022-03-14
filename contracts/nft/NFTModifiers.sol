@@ -15,7 +15,7 @@ contract NFTModifiers is NFTStorage {
     }
 
     modifier isExistingToken(uint256 tokenId) {
-        if (_tokenIdCounter <= tokenId) revert NFTErrors.UnexistingToken();
+        if (_baseHashrates[tokenId] == 0) revert NFTErrors.UnexistingToken();
         _;
     }
 }

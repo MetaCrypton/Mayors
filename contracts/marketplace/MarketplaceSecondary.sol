@@ -9,7 +9,7 @@ import "./common/MarketplaceStorage.sol";
 import "../common/interfaces/IERC721.sol";
 
 contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, MarketplaceStorage {
-    function setForSale(Item calldata item, uint256 price) external override {
+    function setItemPrice(Item calldata item, uint256 price) external override {
         if (price < MarketplaceConstants.MIN_VALID_PRICE) revert MarketplaceErrors.NotValidPrice();
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
         if (IERC721(item.addr).ownerOf(item.tokenId) != msg.sender) revert MarketplaceErrors.NotItemOwner();

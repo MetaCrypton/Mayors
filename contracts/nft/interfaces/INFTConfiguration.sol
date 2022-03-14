@@ -7,5 +7,9 @@ import "../common/NFTStructs.sol";
 interface INFTConfiguration {
     function updateConfig(NFTConfig calldata config) external;
 
+    function updateSeason(string calldata uri) external;
+
     function getConfig() external view returns (NFTConfig memory);
+
+    function getSeason(uint256 i) external view returns (Season memory);
 }

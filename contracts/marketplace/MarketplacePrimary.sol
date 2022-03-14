@@ -10,11 +10,11 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable, MarketplaceStorage {
     function buyLootboxMP(uint256 index, bytes32[] calldata merkleProof) external override returns (uint256) {
-        if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
+        if (_lootboxesForSale == 0) revert MarketplaceErrors.OutOfStock();
         if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotEligible();
         if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress) revert MarketplaceErrors.TooManyLootboxes();
 
-        _config.lootboxesCap--;
+        _lootboxesForSale--;
         _lootboxesBought[msg.sender]++;
 
         uint256 id = _config.lootbox.mint(msg.sender);
@@ -26,11 +26,11 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
     }
 
     function buyLootbox() external override returns (uint256) {
-        if (_config.lootboxesCap == 0) revert MarketplaceErrors.OutOfStock();
+        if (_lootboxesForSale == 0) revert MarketplaceErrors.OutOfStock();
         if (!_eligibleForLootbox[msg.sender]) revert MarketplaceErrors.NotEligible();
         if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress) revert MarketplaceErrors.TooManyLootboxes();
 
-        _config.lootboxesCap--;
+        _lootboxesForSale--;
         _lootboxesBought[msg.sender]++;
 
         uint256 id = _config.lootbox.mint(msg.sender);
