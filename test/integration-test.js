@@ -5,7 +5,8 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const BASE_URI = "https://mayors.io"
+    const SEASON_1_URI = "https://mayors_1.io"
+    const SEASON_2_URI = "https://mayors_2.io"
 
     const LOOTBOXES_CAP = 3;
     const LOOTBOXES_PER_ADDRESS = 3;
@@ -108,7 +109,7 @@ describe("Integration", function() {
             admin,
             "Mayors",
             "MRS",
-            BASE_URI,
+            SEASON_1_URI,
             admin.address
         );
         lootbox = await deploy(
@@ -162,7 +163,7 @@ describe("Integration", function() {
         await marketplace.connect(admin).addToEligible([alice.address, bob.address]);
     });
 
-    it("Buy lootbox", async function() {
+    it("Buy lootbox merkle proof", async function() {
         assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
         assert.equal(await token1.balanceOf(admin.address), 0);
 
@@ -256,7 +257,7 @@ describe("Integration", function() {
 
             assert.equal(hat, i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+rarity+"/"+1+"/"+i+"/"+0);
+            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+1+"/"+i+"/"+0);
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 990000000000000);
@@ -291,7 +292,7 @@ describe("Integration", function() {
             assert.equal(hat, i);
             assert.equal(inHand, i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+rarity+"/"+2+"/"+i+"/"+i);
+            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+2+"/"+i+"/"+i);
 
             if (rarity == RARITIES.common) {
                 assert.equal(votePrice, 980000000000000);
@@ -309,6 +310,62 @@ describe("Integration", function() {
                 assert.equal(votePrice, 920000000000000);
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
+            }
+        }
+    });
+
+    it("Update season", async function() {
+        await nft.connect(admin).updateSeason(SEASON_2_URI);
+    });
+
+    it("Buy lootbox whitelist", async function() {
+        await token1.connect(admin).transfer(alice.address, ALICE_MINT);
+
+        assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
+        assert.equal(await token1.balanceOf(admin.address), 0);
+
+        await token1.connect(alice).approve(marketplace.address, PRICE);
+
+        await marketplace.connect(alice).buyLootbox();
+
+        assert.equal(await token1.balanceOf(alice.address), 0);
+        assert.equal(await token1.balanceOf(admin.address), PRICE);
+    });
+
+    it("Reveal lootbox", async function() {
+        await lootbox.connect(alice).reveal(1, ["Mayor3", "Mayor4", "Mayor5"]);
+    });
+
+    it("Validate nft ownership", async function() {
+        for (let i = 4; i < NUMBER_IN_LOOTBOXES + 4; i++) {
+            assert.equal(await nft.ownerOf(i), alice.address);
+        }
+    });
+
+    it("Get rarities & hashrates", async function() {
+        for (let i = 4; i < NUMBER_IN_LOOTBOXES + 4; i++) {
+            let rarity = await nft.getRarity(i);
+            let hashrate = await nft.getHashrate(i);
+            let votePrice = await nft.getVotePrice(i);
+
+            assert.equal(await nft.tokenURI(i), SEASON_2_URI+"/"+rarity+"/"+0+"/"+0+"/"+0);
+
+            if (rarity == RARITIES.common) {
+                assert.equal(votePrice, 1000000000000000);
+                assert.isAtMost(hashrate, 200);
+                assert.isAtLeast(hashrate, 100);
+            } else if (rarity == RARITIES.rare) {
+                assert.equal(votePrice, 1000000000000000);
+                assert.isAtMost(hashrate, 550);
+                assert.isAtLeast(hashrate, 270);
+            } else if (rarity == RARITIES.epic) {
+                assert.equal(votePrice, 1000000000000000);
+                assert.isAtMost(hashrate, 2750);
+                assert.isAtLeast(hashrate, 1250);
+            } else if (rarity == RARITIES.legendary) {
+                assert.equal(votePrice, 1000000000000000);
+                assert.isAtMost(hashrate, 14000);
+                assert.isAtLeast(hashrate, 6500);
             }
         }
     });

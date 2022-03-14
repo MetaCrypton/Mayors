@@ -18,4 +18,6 @@ library NFTErrors {
     error NoHat();
     error NoInHand();
     error NoSeasons();
+    error UnknownSeason();
+    error NoTokensInSeason();
 }

@@ -299,17 +299,17 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         uint256 length = _seasons.length;
         if (length == 0) revert NFTErrors.NoSeasons();
 
-        if (tokenId == 0 || length == 1) {
+        if (tokenId == 1 || length == 1) {
             return 0;
         } else {
             for (uint256 i = 0; i < length; i++) {
                 uint256 lastId = _seasons[i].lastId;
-                if (lastId >= tokenId) {
+                if (lastId >= tokenId || lastId == 0) {
                     return i;
                 }
             }
         }
-        return 0; // lastId == 0 -> ongoing season
+        revert NFTErrors.UnknownSeason();
     }
 
     /**
