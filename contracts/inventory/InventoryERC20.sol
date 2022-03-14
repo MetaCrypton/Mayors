@@ -31,8 +31,8 @@ contract InventoryERC20 is IInventoryERC20, InventoryAsset {
         }
 
         if (type(uint256).max - balance < amount) revert InventoryErrors.DepositOverflow();
-        Asset memory asset = _packERC20Asset(token, balance + amount);
-        storeAsset(asset);
+        storeAsset(_packERC20Asset(token, balance + amount));
+
         IERC20(token).transferFrom(from, address(this), amount);
     }
 
@@ -42,15 +42,21 @@ contract InventoryERC20 is IInventoryERC20, InventoryAsset {
         uint256 amount
     ) external override verifyNFTOwner verifyERC20Input(token, amount) {
         emit WithdrawERC20(recipient, token, amount);
-        uint256 balance = getERC20Balance(token);
+
+        uint256 id = _getERC20Id(token);
+        uint256 index = _assetsSet._getAssetIndexById(id);
+        if (index == 0) revert InventoryErrors.UnexistingAsset();
+
+        uint256 balance = _getERC20BalanceByIndex(token, index);
         if (balance < amount) revert InventoryErrors.WithdrawOverflow();
+
         balance -= amount;
-        Asset memory asset = _packERC20Asset(token, balance);
         if (balance > 0) {
-            storeAsset(asset);
+            storeAsset(_packERC20Asset(token, balance));
         } else {
-            removeAsset(asset.id);
+            removeAsset(id);
         }
+
         IERC20(token).transfer(recipient, amount);
     }
 
@@ -62,6 +68,7 @@ contract InventoryERC20 is IInventoryERC20, InventoryAsset {
         uint256 id = _getERC20Id(token);
         uint256 index = _assetsSet._getAssetIndexById(id);
         if (index == 0) revert InventoryErrors.UnexistingAsset();
+
         return _getERC20BalanceByIndex(token, index);
     }
 

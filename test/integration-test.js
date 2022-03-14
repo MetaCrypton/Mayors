@@ -369,29 +369,55 @@ describe("Integration", function() {
 
     it("Deposit and withdraw ERC20 in inventory", async function() {
         let balance;
+        let assets;
 
         const token = await deploy("Token", admin, "Random ERC20 token", "TKN", admin.address);
         await token.connect(admin).mint(alice.address, ALICE_MINT);
         await token.connect(admin).mint(bob.address, BOB_MINT);
 
-        await token.connect(alice).approve(inventory.address, 10);
-        await token.connect(admin).approve(bob.address, 7);
+        await token.connect(alice).approve(inventory.address, 15);
+        await token.connect(admin).approve(bob.address, 15);
 
+        // first deposit(create an asset)
         await inventory.connect(alice).depositERC20(alice.address, token.address, 10);
         balance = await inventory.connect(admin).getERC20Balance(token.address);
         assert.equal(balance, 10);
 
+        // second deposit(update the asset)
+        await inventory.connect(alice).depositERC20(alice.address, token.address, 5);
+        balance = await inventory.connect(admin).getERC20Balance(token.address);
+        assert.equal(balance, 15);
+
+        // withdraw overflow
+        await expect(
+            inventory.connect(alice).withdrawERC20(bob.address, token.address, 999)
+        ).to.be.revertedWith('WithdrawOverflow()');
+
+        // withdraw a part of balance(update the asset)
         await inventory.connect(alice).withdrawERC20(bob.address, token.address, 7);
         balance = await inventory.connect(admin).getERC20Balance(token.address);
-        assert.equal(balance, 3);
+        assert.equal(balance, 8);
 
-        assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 10);
+        assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 15);
         assert.equal(await token.balanceOf(bob.address), BOB_MINT + 7);
 
-        const assets = await inventory.connect(admin).getERC20s(0, 1);
+        assets = await inventory.connect(admin).getERC20s(0, 1);
         assert.equal(assets.length, 1);
         assert.equal(assets[0].tokenAddress, token.address);
-        assert.equal(assets[0].amount, 3);
+        assert.equal(assets[0].amount, 8);
+
+        // withraw all balance(remove the asset)
+        await inventory.connect(alice).withdrawERC20(bob.address, token.address, 8);
+        await expect(
+            inventory.connect(admin).getERC20Balance(token.address)
+        ).to.be.revertedWith('UnexistingAsset()');
+
+        assert.equal(await token.balanceOf(alice.address), ALICE_MINT - 15);
+        assert.equal(await token.balanceOf(bob.address), BOB_MINT + 15);
+
+        await expect(
+            inventory.connect(admin).getERC20s(0, 1)
+        ).to.be.revertedWith('WrongEndIndex()');
     });
 
     it("Deposit and withdraw ERC721 in inventory", async function() {
