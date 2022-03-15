@@ -17,7 +17,4 @@ library NFTErrors {
     error MaxLevel();
     error NoHat();
     error NoInHand();
-    error NoSeasons();
-    error UnknownSeason();
-    error NoTokensInSeason();
 }

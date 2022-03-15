@@ -14,29 +14,47 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
         emit ConfigUpdated();
     }
 
-    function setLootboxesForSale(uint256 number) external override isOwner {
-        if (number == _lootboxesForSale) revert MarketplaceErrors.SameValue();
-        _lootboxesForSale = number;
-        emit SetLootboxesForSale(number);
+    function finishLootboxesSale() external override isOwner {
+        _lootboxesLeft = 0;
+        emit LootboxesSaleFinished();
+    }
+
+    function startLootboxesSale(uint256 number, string calldata uri) external override isOwner {
+        _seasonURI = uri;
+        _lootboxesLeft = number;
+
+        emit LootboxesSaleStarted(number, uri);
     }
 
     function addLootboxesForSale(uint256 number) external override isOwner {
         if (number == 0) revert MarketplaceErrors.NullValue();
-        _lootboxesForSale += number;
+        _lootboxesLeft += number;
         emit AddedLootboxesForSale(number);
     }
 
     function burnLootboxesForSale(uint256 number) external override isOwner {
         if (number == 0) revert MarketplaceErrors.NullValue();
-        if (_lootboxesForSale <= number) {
-            _lootboxesForSale = 0;
+        if (_lootboxesLeft <= number) {
+            _lootboxesLeft = 0;
         } else {
-            _lootboxesForSale -= number;
+            _lootboxesLeft -= number;
         }
         emit RemovedLootboxesForSale(number);
     }
 
+    function updateSeason(string calldata uri) external override isOwner {
+        if (keccak256(abi.encodePacked(_seasonURI)) == keccak256(abi.encodePacked(uri)))
+            revert MarketplaceErrors.SameValue();
+        _seasonURI = uri;
+
+        emit SeasonUpdated(uri);
+    }
+
     function getConfig() external view override returns (MarketplaceConfig memory) {
         return _config;
+    }
+
+    function getSeasonURI() external view override returns (string memory) {
+        return _seasonURI;
     }
 }

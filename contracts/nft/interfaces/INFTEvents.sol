@@ -10,6 +10,4 @@ interface INFTEvents {
     event LevelUpdated(uint256 tokenId, Level level);
 
     event NameSet(uint256 tokenId, string name);
-
-    event SeasonUpdated(string uri);
 }

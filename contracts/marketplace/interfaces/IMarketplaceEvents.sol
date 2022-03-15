@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 interface IMarketplaceEvents {
     event ConfigUpdated();
 
-    event AddedToEligible(address participant);
+    event AddedToWhiteList(address participant);
 
-    event RemovedFromEligible(address participant);
+    event RemovedFromWhiteList(address participant);
 
     event LootboxBought(address buyer, address lootboxAddress, uint256 lootboxId);
 
@@ -17,7 +17,13 @@ interface IMarketplaceEvents {
 
     event SetLootboxesForSale(uint256 number);
 
+    event LootboxesSaleFinished();
+
+    event LootboxesSaleStarted(uint256 number, string uri);
+
     event AddedLootboxesForSale(uint256 number);
 
     event RemovedLootboxesForSale(uint256 number);
+
+    event SeasonUpdated(string uri);
 }

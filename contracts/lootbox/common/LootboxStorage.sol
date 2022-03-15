@@ -8,4 +8,6 @@ import "../../common/erc721/ERC721Storage.sol";
 
 contract LootboxStorage is ERC721Storage, OwnableStorage {
     LootboxConfig internal _config;
+
+    mapping(uint256 => string) internal _seasonURI;
 }

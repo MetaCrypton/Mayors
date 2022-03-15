@@ -130,8 +130,7 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        uint256 seasonId = _getTokenSeasonId(tokenId);
-        string memory baseURI = _seasons[seasonId].uri;
+        string memory baseURI = _seasonURI[tokenId];
 
         Rarity rarity = _rarities[tokenId];
         Level level = _levels[tokenId];
@@ -293,23 +292,6 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         require(_exists(tokenId), "ERC721: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
-    }
-
-    function _getTokenSeasonId(uint256 tokenId) internal view returns (uint256) {
-        uint256 length = _seasons.length;
-        if (length == 0) revert NFTErrors.NoSeasons();
-
-        if (tokenId == 1 || length == 1) {
-            return 0;
-        } else {
-            for (uint256 i = 0; i < length; i++) {
-                uint256 lastId = _seasons[i].lastId;
-                if (lastId >= tokenId || lastId == 0) {
-                    return i;
-                }
-            }
-        }
-        revert NFTErrors.UnknownSeason();
     }
 
     /**

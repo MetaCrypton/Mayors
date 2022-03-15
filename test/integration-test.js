@@ -109,7 +109,6 @@ describe("Integration", function() {
             admin,
             "Mayors",
             "MRS",
-            SEASON_1_URI,
             admin.address
         );
         lootbox = await deploy(
@@ -134,6 +133,7 @@ describe("Integration", function() {
                 MERKLE_ROOT
             ],
             LOOTBOXES_CAP,
+            SEASON_1_URI,
             admin.address
         );
 
@@ -160,7 +160,7 @@ describe("Integration", function() {
     });
 
     it("Set eligibles", async function() {
-        await marketplace.connect(admin).addToEligible([alice.address, bob.address]);
+        await marketplace.connect(admin).addToWhiteList([alice.address, bob.address]);
     });
 
     it("Buy lootbox merkle proof", async function() {
@@ -315,7 +315,7 @@ describe("Integration", function() {
     });
 
     it("Update season", async function() {
-        await nft.connect(admin).updateSeason(SEASON_2_URI);
+        await marketplace.connect(admin).updateSeason(SEASON_2_URI);
     });
 
     it("Buy lootbox whitelist", async function() {

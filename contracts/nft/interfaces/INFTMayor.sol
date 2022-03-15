@@ -5,7 +5,11 @@ pragma solidity ^0.8.0;
 import "../common/NFTStructs.sol";
 
 interface INFTMayor {
-    function batchMint(address owner, string[] calldata names) external returns (uint256[] memory tokenIds);
+    function batchMint(
+        address owner,
+        string calldata seasonURI,
+        string[] calldata names
+    ) external returns (uint256[] memory tokenIds);
 
     function updateLevel(uint256 tokenId) external;
 
@@ -22,6 +26,4 @@ interface INFTMayor {
     function getHat(uint256 tokenId) external view returns (uint256);
 
     function getInHand(uint256 tokenId) external view returns (uint256);
-
-    function getTokenSeasonId(uint256 tokenId) external view returns (uint256);
 }

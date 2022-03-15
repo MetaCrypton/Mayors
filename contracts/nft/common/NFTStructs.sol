@@ -29,11 +29,6 @@ struct VoteDiscounts {
     uint8[3] legendary;
 }
 
-struct Season {
-    string uri;
-    uint256 lastId;
-}
-
 enum Rarity {
     Common,
     Rare,

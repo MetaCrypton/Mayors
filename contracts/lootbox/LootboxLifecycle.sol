@@ -17,8 +17,10 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         if (names.length != _config.numberInLootbox) revert LootboxErrors.Overflow();
         require(_isApprovedOrOwner(msg.sender, tokenId), "reveal: reveal caller is not owner nor approved");
 
-        tokenIds = _config.nft.batchMint(msg.sender, names);
+        tokenIds = _config.nft.batchMint(msg.sender, _seasonURI[tokenId], names);
+
         _burn(tokenId);
+        delete _seasonURI[tokenId];
 
         return tokenIds;
     }
@@ -30,9 +32,15 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
      *
      * - The caller must own `tokenId` or be an approved operator.
      */
-    function mint(address owner) public override isMarketplaceOrOwner returns (uint256 tokenId) {
+    function mint(string memory seasonURI, address owner)
+        public
+        override
+        isMarketplaceOrOwner
+        returns (uint256 tokenId)
+    {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
+        _seasonURI[id] = seasonURI;
         return id;
     }
 }

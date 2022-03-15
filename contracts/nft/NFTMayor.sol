@@ -11,12 +11,11 @@ import "./common/NFTConstants.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
 
 contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
-    function batchMint(address owner, string[] calldata names)
-        external
-        override
-        isLootboxOrOwner
-        returns (uint256[] memory tokenIds)
-    {
+    function batchMint(
+        address owner,
+        string calldata seasonURI,
+        string[] calldata names
+    ) external override isLootboxOrOwner returns (uint256[] memory tokenIds) {
         if (names.length > type(uint8).max) revert NFTErrors.Overflow();
         uint256 length = names.length;
 
@@ -27,6 +26,7 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
             uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
             tokenIds[i] = tokenId;
             _names[tokenId] = names[i];
+            _seasonURI[tokenId] = seasonURI;
             emit NameSet(tokenId, names[i]);
         }
 
@@ -85,10 +85,6 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         uint256 result = _inHandId[tokenId];
         if (result == 0) revert NFTErrors.NoInHand();
         return result;
-    }
-
-    function getTokenSeasonId(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
-        return _getTokenSeasonId(tokenId);
     }
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {

@@ -9,11 +9,11 @@ interface IMarketplacePrimary {
 
     function buyLootbox() external returns (uint256);
 
-    function addToEligible(address[] calldata participants) external;
+    function addToWhiteList(address[] calldata participants) external;
 
-    function removeFromEligible(address[] calldata participants) external;
+    function removeFromWhiteList(address[] calldata participants) external;
 
-    function isEligible(address participant) external view returns (bool);
+    function isInWhiteList(address participant) external view returns (bool);
 
     function verifyMerkleProof(
         uint256 index,
