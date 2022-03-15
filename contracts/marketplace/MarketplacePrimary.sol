@@ -41,6 +41,13 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         return id;
     }
 
+    function sendLootboxes(uint256 number, address recipient) external override isOwner {
+        if (_lootboxesLeft < number) revert MarketplaceErrors.OutOfStock();
+
+        _lootboxesLeft -= number;
+        _config.lootbox.batchMint(number, _seasonURI, recipient);
+    }
+
     function addToWhiteList(address[] calldata participants) external override isOwner {
         uint256 length = participants.length;
         for (uint256 i = 0; i < length; i++) {

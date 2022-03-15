@@ -303,13 +303,13 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
      * @param num The number to be converted
      * @return Bytes representation of the number
      */
-    function _uintToASCIIBytes(uint num) internal pure returns (bytes memory) {
-        uint _i = num;
+    function _uintToASCIIBytes(uint256 num) internal pure returns (bytes memory) {
+        uint256 _i = num;
         if (_i == 0) {
             return "0";
         }
-        uint j = _i;
-        uint len;
+        uint256 j = _i;
+        uint256 len;
         while (j != 0) {
             len++;
             j /= 10;

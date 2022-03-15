@@ -25,15 +25,8 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         return tokenIds;
     }
 
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_mint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function mint(string memory seasonURI, address owner)
-        public
+    function mint(string calldata seasonURI, address owner)
+        external
         override
         isMarketplaceOrOwner
         returns (uint256 tokenId)
@@ -42,5 +35,21 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         _mint(owner, id);
         _seasonURI[id] = seasonURI;
         return id;
+    }
+
+    function batchMint(
+        uint256 number,
+        string calldata seasonURI,
+        address owner
+    ) external override isMarketplaceOrOwner {
+        _balances[owner] += number;
+
+        while (number-- > 1) {
+            uint256 id = _tokenIdCounter++;
+            _owners[id] = owner;
+            _seasonURI[id] = seasonURI;
+
+            emit Transfer(address(0), owner, id);
+        }
     }
 }

@@ -5,10 +5,12 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const SEASON_1_URI = "https://mayors_1.io"
-    const SEASON_2_URI = "https://mayors_2.io"
+    const SEASON_1_URI = "https://mayors_1.io";
+    const SEASON_2_URI = "https://mayors_2.io";
 
-    const LOOTBOXES_CAP = 3;
+    const LOOTBOXES_BATCH = 1570;
+
+    const LOOTBOXES_CAP = 30000;
     const LOOTBOXES_PER_ADDRESS = 3;
     const NUMBER_IN_LOOTBOXES = 3;
     const PRICE = 100;
@@ -368,5 +370,12 @@ describe("Integration", function() {
                 assert.isAtLeast(hashrate, 6500);
             }
         }
+    });
+
+    it("Send lootboxes in batch", async function() {
+        assert.equal(await lootbox.balanceOf(alice.address), 0);
+        let tx = await marketplace.connect(admin).sendLootboxes(LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
+
+        assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
     });
 });

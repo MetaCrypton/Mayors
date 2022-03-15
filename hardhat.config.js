@@ -12,6 +12,9 @@ module.exports = {
     }
   },
   networks: {
+    hardhat: {
+      blockGasLimit: 75501907
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/31c3397beb4146e4acc9f4a072da5d23`,
       accounts: [`${PRIVATE_KEY}`],

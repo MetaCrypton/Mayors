@@ -9,6 +9,8 @@ interface IMarketplacePrimary {
 
     function buyLootbox() external returns (uint256);
 
+    function sendLootboxes(uint256 number, address recipient) external;
+
     function addToWhiteList(address[] calldata participants) external;
 
     function removeFromWhiteList(address[] calldata participants) external;
