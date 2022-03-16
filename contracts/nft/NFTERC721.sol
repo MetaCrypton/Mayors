@@ -135,22 +135,9 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         Rarity rarity = _rarities[tokenId];
         Level level = _levels[tokenId];
 
-        uint256 hatId = _hatId[tokenId];
-        uint256 inHandId = _inHandId[tokenId];
-
         return
             string(
-                abi.encodePacked(
-                    baseURI,
-                    "/",
-                    _uintToASCIIBytes(uint8(rarity)),
-                    "/",
-                    _uintToASCIIBytes(uint8(level)),
-                    "/",
-                    _uintToASCIIBytes(hatId),
-                    "/",
-                    _uintToASCIIBytes(inHandId)
-                )
+                abi.encodePacked(baseURI, "/", _uintToASCIIBytes(uint8(rarity)), "/", _uintToASCIIBytes(uint8(level)))
             );
     }
 

@@ -8,12 +8,10 @@ interface INFTMayor {
     function batchMint(
         address owner,
         string calldata seasonURI,
-        string[] calldata names
+        uint256 numberToMint
     ) external returns (uint256[] memory tokenIds);
 
     function updateLevel(uint256 tokenId) external;
-
-    function getName(uint256 tokenId) external view returns (string memory);
 
     function getLevel(uint256 tokenId) external view returns (Level);
 
@@ -22,8 +20,4 @@ interface INFTMayor {
     function getVotePrice(uint256 tokenId) external view returns (uint256);
 
     function getRarity(uint256 tokenId) external view returns (Rarity);
-
-    function getHat(uint256 tokenId) external view returns (uint256);
-
-    function getInHand(uint256 tokenId) external view returns (uint256);
 }

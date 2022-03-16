@@ -12,7 +12,6 @@ contract NFT is NFTMayor, NFTConfiguration {
         string memory symbol_,
         address owner
     ) {
-        _tokenIdCounter = 1;
         _name = name_;
         _symbol = symbol_;
         _owner = owner;

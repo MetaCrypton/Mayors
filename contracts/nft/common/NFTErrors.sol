@@ -11,10 +11,7 @@ library NFTErrors {
     error WrongRarity();
     error Overflow();
     error UnexistingToken();
-    error EmptyName();
     error SameValue();
     error WrongLevel();
     error MaxLevel();
-    error NoHat();
-    error NoInHand();
 }
