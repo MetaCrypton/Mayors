@@ -13,11 +13,26 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         _;
     }
 
-    function reveal(uint256 tokenId, string[] calldata names) external override returns (uint256[] memory tokenIds) {
+    function reveal(
+        uint256 tokenId,
+        string[] calldata names,
+        address upgradesRegistry,
+        address inventoryInterface,
+        address inventorySetup,
+        uint256[] memory inventoryUpgrades
+    ) external override returns (uint256[] memory tokenIds) {
         if (names.length != _config.numberInLootbox) revert LootboxErrors.Overflow();
         require(_isApprovedOrOwner(msg.sender, tokenId), "reveal: reveal caller is not owner nor approved");
 
-        tokenIds = _config.nft.batchMint(msg.sender, names);
+        //TODO: take arguments from storage instead of direct passing in this function
+        tokenIds = _config.nft.batchMint(
+            msg.sender,
+            names,
+            upgradesRegistry,
+            inventoryInterface,
+            inventorySetup,
+            inventoryUpgrades
+        );
         _burn(tokenId);
 
         return tokenIds;

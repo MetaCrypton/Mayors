@@ -5,7 +5,14 @@ pragma solidity ^0.8.0;
 import "../common/NFTStructs.sol";
 
 interface INFTMayor {
-    function batchMint(address owner, string[] calldata names) external returns (uint256[] memory tokenIds);
+    function batchMint(
+        address owner,
+        string[] calldata names,
+        address upgradesRegistry,
+        address inventoryInterface,
+        address inventorySetup,
+        uint256[] memory inventoryUpgrades
+    ) external returns (uint256[] memory tokenIds);
 
     function updateLevel(uint256 tokenId) external;
 

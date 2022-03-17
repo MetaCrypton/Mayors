@@ -53,6 +53,7 @@ describe("Integration", function() {
     let lootbox;
     let marketplace;
     let inventory;
+    let upgradesRegistry, upgradesRegistryUpgrade, upgradesRegistryUpgradable;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -135,6 +136,8 @@ describe("Integration", function() {
             admin.address
         );
 
+        // TODO: move inventory interface and setup somewhere here
+
         await lootbox.connect(admin).updateConfig(
             [
                 NUMBER_IN_LOOTBOXES,
@@ -190,8 +193,30 @@ describe("Integration", function() {
         assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), charlie.address);
     });
 
+    it("Deploy Upgrades Registry", async function() {
+        const upgradesRegistryCoreInterface = await deploy("UpgradesRegistryCoreInterface", admin);
+        const upgradesRegistryInit = await deploy("UpgradesRegistryInit", admin);
+        const upgradesRegistryProxy = await deploy("UpgradesRegistryProxy", admin, upgradesRegistryCoreInterface.address, upgradesRegistryInit.address);
+
+        const upgradesRegistryInitializable = await ethers.getContractAt("IInitializable", upgradesRegistryProxy.address);
+        upgradesRegistryUpgrade = await ethers.getContractAt("IUpgrade", upgradesRegistryProxy.address);
+        upgradesRegistryUpgradable = await ethers.getContractAt("IUpgradable", upgradesRegistryProxy.address);
+        upgradesRegistry = await ethers.getContractAt("IUpgradesRegistry", upgradesRegistryProxy.address);
+
+        await upgradesRegistryInitializable.initialize([]);
+    });
+
     it("Reveal lootbox", async function() {
-        await lootbox.connect(charlie).reveal(0, ["Mayor0", "Mayor1", "Mayor2"]);
+        let inventoryInit = await deploy("Inventory", admin);
+        let inventoryInterface = await deploy("InventoryInterface", admin);
+        await lootbox.connect(charlie).reveal(
+            0,
+            ["Mayor0", "Mayor1", "Mayor2"],
+            upgradesRegistry.address,
+            inventoryInterface.address,
+            inventoryInit.address,
+            []
+        );
     });
 
     it("Validate nft ownership", async function() {

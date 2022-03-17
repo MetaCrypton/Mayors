@@ -10,14 +10,20 @@ import "./helpers/IRarityCalculator.sol";
 import "./common/NFTConstants.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
 import "../inventory/Inventory.sol";
+import "../inventory/InventoryInitializable.sol";
+import "../inventory/InventoryProxy.sol";
+import "../common/upgradability/IUpgradable.sol";
+import "../upgrades-registry/interfaces/IUpgradesRegistry.sol";
 
 contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
-    function batchMint(address owner, string[] calldata names)
-        external
-        override
-        isLootboxOrOwner
-        returns (uint256[] memory tokenIds)
-    {
+    function batchMint(
+        address owner,
+        string[] calldata names,
+        address upgradesRegistry,
+        address inventoryInterface,
+        address inventorySetup,
+        uint256[] memory inventoryUpgrades
+    ) external override isLootboxOrOwner returns (uint256[] memory tokenIds) {
         if (names.length > type(uint8).max) revert NFTErrors.Overflow();
         uint256 length = names.length;
 
@@ -28,7 +34,13 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
             uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
             tokenIds[i] = tokenId;
             _names[tokenId] = names[i];
-            _inventories[tokenId] = _deployInventory(tokenId);
+            _inventories[tokenId] = _deployInventory(
+                tokenId,
+                upgradesRegistry,
+                inventoryInterface,
+                inventorySetup,
+                inventoryUpgrades
+            );
             emit NameSet(tokenId, names[i]);
         }
 
@@ -87,7 +99,22 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         _baseHashrates[id] = hashrate;
     }
 
-    function _deployInventory(uint256 tokenId) internal returns (address inventory) {
-        return address(new Inventory(tokenId));
+    function _deployInventory(
+        uint256 tokenId,
+        address upgradesRegistry,
+        address inventoryInterface,
+        address inventorySetup,
+        uint256[] memory inventoryUpgrades
+    ) internal returns (address inventory) {
+        inventory = address(new InventoryProxy(inventoryInterface, inventorySetup));
+
+        InventoryInitializable(inventory).initialize(abi.encode(tokenId, upgradesRegistry));
+
+        IUpgradesRegistry(upgradesRegistry).registerProxy(inventory);
+
+        uint upgradesLen = inventoryUpgrades.length;
+        for (uint i = 0; i < upgradesLen; i++) {
+            IUpgradable(inventory).upgrade(inventoryUpgrades[i]);
+        }
     }
 }

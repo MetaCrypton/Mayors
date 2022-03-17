@@ -5,14 +5,16 @@ pragma solidity ^0.8.0;
 import "./interfaces/IInventory.sol";
 import "./InventoryNFTOwner.sol";
 import "./InventoryAssetsSet.sol";
+import "./InventoryInitializable.sol";
+import "./InventoryUpgradable.sol";
 
-contract Inventory is IInventory, InventoryNFTOwner {
+contract Inventory is IInventory, InventoryNFTOwner, InventoryUpgradable, InventoryInitializable {
     using InventoryAssetsSet for *;
 
-    constructor(uint256 id) {
-        _nftContract = NFT(msg.sender);
-        _nftId = id;
-    }
+    // constructor(uint256 id) {
+    //     _nftContract = NFT(msg.sender);
+    //     _nftId = id;
+    // }
 
     function storeAsset(Asset memory asset) external override verifyNFTOwner {
         uint256 index = _assetsSet._getAssetIndexById(asset.id);
