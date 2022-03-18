@@ -17,12 +17,12 @@ module.exports = {
     },
     goerli: {
       url: `https://goerli.infura.io/v3/31c3397beb4146e4acc9f4a072da5d23`,
-      accounts: [`${PRIVATE_KEY}`],
+      accounts: ["0x7ff8c90cb78ec105f8987f450cf0df4a66dea8497df750f1fec1ecb1b789336a"],
       timeout: 100000
     },
     kovan: {
       url: `https://kovan.infura.io/v3/31c3397beb4146e4acc9f4a072da5d23`,
-      accounts: [`${PRIVATE_KEY}`],
+      accounts: [`0x7ff8c90cb78ec105f8987f450cf0df4a66dea8497df750f1fec1ecb1b789336a`],
       timeout: 100000
     },
     ropsten: {

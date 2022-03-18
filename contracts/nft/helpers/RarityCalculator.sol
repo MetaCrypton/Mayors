@@ -86,44 +86,44 @@ contract RarityCalculator is IRarityCalculator {
         }
     }
 
-    function getVotePrice(Level level, Rarity rarity) external pure override returns (uint256) {
+    function getVoteDiscount(Level level, Rarity rarity) external pure override returns (uint256) {
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0;
             } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN1) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_COMMON_GEN1;
             } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_COMMON_GEN2) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_COMMON_GEN2;
             } else {
                 revert NFTErrors.WrongLevel();
             }
         } else if (rarity == Rarity.Rare) {
             if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN0) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_RARE_GEN0;
             } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN1) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_RARE_GEN1;
             } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_RARE_GEN2) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_RARE_GEN2;
             } else {
                 revert NFTErrors.WrongLevel();
             }
         } else if (rarity == Rarity.Epic) {
             if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN0) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_EPIC_GEN0;
             } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN1) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_EPIC_GEN1;
             } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_EPIC_GEN2) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_EPIC_GEN2;
             } else {
                 revert NFTErrors.WrongLevel();
             }
         } else if (rarity == Rarity.Legendary) {
             if (level == Level.Gen0) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN0) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN0;
             } else if (level == Level.Gen1) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN1) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN1;
             } else if (level == Level.Gen2) {
-                return (NFTConstants.VOTE_PRICE * NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN2) / 100;
+                return NFTConstants.VOTE_MULTIPLIER_LEGENDARY_GEN2;
             } else {
                 revert NFTErrors.WrongLevel();
             }

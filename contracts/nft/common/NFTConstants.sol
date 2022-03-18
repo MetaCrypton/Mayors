@@ -42,8 +42,6 @@ library NFTConstants {
 
     uint8 internal constant MAX_LEVEL = 2;
 
-    uint256 internal constant VOTE_PRICE = 0.001 ether;
-
     uint256 internal constant COMMON_RANGE_MAX = 20;
     uint256 internal constant COMMON_RANGE_MIN = 10;
 

@@ -19,5 +19,5 @@ interface IRarityCalculator {
         uint256 baseHashrate
     ) external pure returns (uint256);
 
-    function getVotePrice(Level level, Rarity rarity) external pure returns (uint256);
+    function getVoteDiscount(Level level, Rarity rarity) external pure returns (uint256);
 }

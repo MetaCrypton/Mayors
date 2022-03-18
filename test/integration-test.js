@@ -208,22 +208,22 @@ describe("Integration", function() {
         for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+            let voteDiscount = await nft.getVoteDiscount(i);
 
             if (rarity == RARITIES.common) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
@@ -254,24 +254,24 @@ describe("Integration", function() {
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+            let voteDiscount = await nft.getVoteDiscount(i);
 
             assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+1);
 
             if (rarity == RARITIES.common) {
-                assert.equal(votePrice, 990000000000000);
+                assert.equal(voteDiscount, 99);
                 assert.isAtMost(hashrate, 800);
                 assert.isAtLeast(hashrate, 400);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(votePrice, 980000000000000);
+                assert.equal(voteDiscount, 98);
                 assert.isAtMost(hashrate, 1650);
                 assert.isAtLeast(hashrate, 810);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(votePrice, 960000000000000);
+                assert.equal(voteDiscount, 96);
                 assert.isAtMost(hashrate, 6875);
                 assert.isAtLeast(hashrate, 3125);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(votePrice, 940000000000000);
+                assert.equal(voteDiscount, 94);
                 assert.isAtMost(hashrate, 28000);
                 assert.isAtLeast(hashrate, 13000);
             }
@@ -284,24 +284,24 @@ describe("Integration", function() {
 
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+            let voteDiscount = await nft.getVoteDiscount(i);
 
             assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+2);
 
             if (rarity == RARITIES.common) {
-                assert.equal(votePrice, 980000000000000);
+                assert.equal(voteDiscount, 98);
                 assert.isAtMost(hashrate, 2400);
                 assert.isAtLeast(hashrate, 1200);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(votePrice, 960000000000000);
+                assert.equal(voteDiscount, 96);
                 assert.isAtMost(hashrate, 4125);
                 assert.isAtLeast(hashrate, 2025);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(votePrice, 940000000000000);
+                assert.equal(voteDiscount, 94);
                 assert.isAtMost(hashrate, 13750);
                 assert.isAtLeast(hashrate, 6250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(votePrice, 920000000000000);
+                assert.equal(voteDiscount, 92);
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
             }
@@ -340,24 +340,24 @@ describe("Integration", function() {
         for (let i = 3; i < NUMBER_IN_LOOTBOXES + 3; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
-            let votePrice = await nft.getVotePrice(i);
+            let voteDiscount = await nft.getVoteDiscount(i);
 
             assert.equal(await nft.tokenURI(i), SEASON_2_URI+"/"+rarity+"/"+0);
 
             if (rarity == RARITIES.common) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(votePrice, 1000000000000000);
+                assert.equal(voteDiscount, 100);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
