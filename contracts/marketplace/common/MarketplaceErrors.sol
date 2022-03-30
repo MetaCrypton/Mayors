@@ -3,8 +3,11 @@
 pragma solidity ^0.8.0;
 
 library MarketplaceErrors {
+    error NotInMerkleTree();
     error NotInWhiteList();
-    error TooManyLootboxes();
+    error TooManyLootboxesPerAddress();
+    error NoSeasons();
+    error EmptySeason();
     error SameValue();
     error NullValue();
     error NotTradable();

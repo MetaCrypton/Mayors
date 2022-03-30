@@ -58,7 +58,7 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         isExistingToken(tokenId)
         returns (uint256)
     {
-        return (votePrice * getVoteDiscount(tokenId)) / 100;
+        return (votePrice * _getVoteMultiplier(tokenId)) / 100;
     }
 
     function getVoteDiscount(uint256 tokenId) public view override isExistingToken(tokenId) returns (uint256) {
@@ -83,5 +83,12 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         );
         _rarities[id] = rarity;
         _baseHashrates[id] = hashrate;
+    }
+
+    function _getVoteMultiplier(uint256 tokenId) internal view isExistingToken(tokenId) returns (uint256) {
+        Level level = _levels[tokenId];
+        Rarity rarity = _rarities[tokenId];
+
+        return IRarityCalculator(_config.rarityCalculator).getVoteMultiplier(level, rarity);
     }
 }

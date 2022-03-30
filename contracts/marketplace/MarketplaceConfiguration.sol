@@ -14,40 +14,13 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
         emit ConfigUpdated();
     }
 
-    function finishLootboxesSale() external override isOwner {
-        _lootboxesLeft = 0;
-        emit LootboxesSaleFinished();
-    }
-
-    function startLootboxesSale(uint256 number, string calldata uri) external override isOwner {
-        _seasonURI = uri;
-        _lootboxesLeft = number;
-
-        emit LootboxesSaleStarted(number, uri);
-    }
-
-    function addLootboxesForSale(uint256 number) external override isOwner {
-        if (number == 0) revert MarketplaceErrors.NullValue();
-        _lootboxesLeft += number;
-        emit AddedLootboxesForSale(number);
-    }
-
-    function burnLootboxesForSale(uint256 number) external override isOwner {
-        if (number == 0) revert MarketplaceErrors.NullValue();
-        if (_lootboxesLeft <= number) {
-            _lootboxesLeft = 0;
-        } else {
-            _lootboxesLeft -= number;
+    function addNewSeasons(Season[] calldata seasons) external override isOwner {
+        uint256 seasonsLength = seasons.length;
+        if (seasonsLength == 0) revert MarketplaceErrors.NoSeasons();
+        for (uint256 i = 0; i < seasonsLength; i++) {
+            if (seasons[i].lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
+            _seasons.push(seasons[i]);
         }
-        emit RemovedLootboxesForSale(number);
-    }
-
-    function updateSeason(string calldata uri) external override isOwner {
-        if (keccak256(abi.encodePacked(_seasonURI)) == keccak256(abi.encodePacked(uri)))
-            revert MarketplaceErrors.SameValue();
-        _seasonURI = uri;
-
-        emit SeasonUpdated(uri);
     }
 
     function getConfig() external view override returns (MarketplaceConfig memory) {
@@ -55,6 +28,10 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
     }
 
     function getSeasonURI() external view override returns (string memory) {
-        return _seasonURI;
+        return _seasons[_currentSeasonIndex].uri;
+    }
+
+    function getSeasonLootboxesLeft() external view override returns (uint256) {
+        return _seasons[_currentSeasonIndex].lootboxesNumber;
     }
 }

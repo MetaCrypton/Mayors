@@ -6,6 +6,11 @@ import "../../lootbox/Lootbox.sol";
 import "../../nft/NFT.sol";
 import "../../token/Token.sol";
 
+struct Season {
+    uint256 lootboxesNumber;
+    string uri;
+}
+
 struct Item {
     address addr;
     uint256 tokenId;

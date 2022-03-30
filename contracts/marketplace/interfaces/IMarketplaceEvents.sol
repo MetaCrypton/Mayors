@@ -17,15 +17,5 @@ interface IMarketplaceEvents {
 
     event ItemBought(address addr, uint256 tokenId, uint256 price);
 
-    event SetLootboxesForSale(uint256 number);
-
-    event LootboxesSaleFinished();
-
-    event LootboxesSaleStarted(uint256 number, string uri);
-
-    event AddedLootboxesForSale(uint256 number);
-
-    event RemovedLootboxesForSale(uint256 number);
-
-    event SeasonUpdated(string uri);
+    event SeasonStarted(uint256 number, string uri);
 }

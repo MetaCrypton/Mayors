@@ -8,9 +8,9 @@ import "../../common/ownership/OwnableStorage.sol";
 contract MarketplaceStorage is OwnableStorage {
     MarketplaceConfig internal _config;
 
-    uint256 internal _lootboxesLeft;
+    uint256 internal _currentSeasonIndex;
 
-    string internal _seasonURI;
+    Season[] internal _seasons;
 
     mapping(address => bool) internal _whiteListForLootbox;
     mapping(address => uint256) internal _lootboxesBought;

@@ -10,14 +10,22 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable, MarketplaceStorage {
     function buyLootboxMP(uint256 index, bytes32[] calldata merkleProof) external override returns (uint256) {
-        if (_lootboxesLeft == 0) revert MarketplaceErrors.OutOfStock();
-        if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotInWhiteList();
-        if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress) revert MarketplaceErrors.TooManyLootboxes();
+        uint currentSeasonIndex = _currentSeasonIndex;
+        Season memory currentSeason = _seasons[currentSeasonIndex];
 
-        _lootboxesLeft--;
+        if (currentSeason.lootboxesNumber == 0) {
+            currentSeasonIndex += 1;
+            currentSeason = _updateSeason(currentSeasonIndex);
+        }
+
+        if (!verifyMerkleProof(index, msg.sender, merkleProof)) revert MarketplaceErrors.NotInMerkleTree();
+        if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress)
+            revert MarketplaceErrors.TooManyLootboxesPerAddress();
+
+        _seasons[currentSeasonIndex].lootboxesNumber--;
         _lootboxesBought[msg.sender]++;
 
-        uint256 id = _config.lootbox.mint(_seasonURI, msg.sender);
+        uint256 id = _config.lootbox.mint(currentSeason.uri, msg.sender);
         emit LootboxBought(msg.sender, address(_config.lootbox), id);
 
         _config.paymentTokenPrimary.transferFrom(msg.sender, _config.feeAggregator, _config.lootboxPrice);
@@ -26,14 +34,22 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
     }
 
     function buyLootbox() external override returns (uint256) {
-        if (_lootboxesLeft == 0) revert MarketplaceErrors.OutOfStock();
-        if (!_whiteListForLootbox[msg.sender]) revert MarketplaceErrors.NotInWhiteList();
-        if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress) revert MarketplaceErrors.TooManyLootboxes();
+        uint currentSeasonIndex = _currentSeasonIndex;
+        Season memory currentSeason = _seasons[currentSeasonIndex];
 
-        _lootboxesLeft--;
+        if (currentSeason.lootboxesNumber == 0) {
+            currentSeasonIndex += 1;
+            currentSeason = _updateSeason(currentSeasonIndex);
+        }
+
+        if (!_whiteListForLootbox[msg.sender]) revert MarketplaceErrors.NotInWhiteList();
+        if (_lootboxesBought[msg.sender] >= _config.lootboxesPerAddress)
+            revert MarketplaceErrors.TooManyLootboxesPerAddress();
+
+        _seasons[currentSeasonIndex].lootboxesNumber--;
         _lootboxesBought[msg.sender]++;
 
-        uint256 id = _config.lootbox.mint(_seasonURI, msg.sender);
+        uint256 id = _config.lootbox.mint(currentSeason.uri, msg.sender);
         emit LootboxBought(msg.sender, address(_config.lootbox), id);
 
         _config.paymentTokenPrimary.transferFrom(msg.sender, _config.feeAggregator, _config.lootboxPrice);
@@ -42,10 +58,17 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
     }
 
     function sendLootboxes(uint256 number, address recipient) external override isOwner {
-        if (_lootboxesLeft < number) revert MarketplaceErrors.OutOfStock();
+        uint currentSeasonIndex = _currentSeasonIndex;
+        Season memory currentSeason = _seasons[_currentSeasonIndex];
+        if (currentSeason.lootboxesNumber < number) revert MarketplaceErrors.OutOfStock();
 
-        _lootboxesLeft -= number;
-        _config.lootbox.batchMint(number, _seasonURI, recipient);
+        currentSeason.lootboxesNumber -= number;
+        _config.lootbox.batchMint(number, currentSeason.uri, recipient);
+
+        if (currentSeason.lootboxesNumber == 0) {
+            currentSeasonIndex += 1;
+            _updateSeason(currentSeasonIndex);
+        }
     }
 
     function addToWhiteList(address[] calldata participants) external override isOwner {
@@ -81,6 +104,15 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
     ) public view override returns (bool) {
         bytes32 node = _node(index, account);
         return MerkleProof.verify(merkleProof, _config.merkleRoot, node);
+    }
+
+    function _updateSeason(uint newSeasonIndex) internal returns (Season memory) {
+        if (newSeasonIndex == _seasons.length) revert MarketplaceErrors.NoSeasons();
+        _currentSeasonIndex = newSeasonIndex;
+
+        Season memory currentSeason = _seasons[newSeasonIndex];
+        emit SeasonStarted(currentSeason.lootboxesNumber, currentSeason.uri);
+        return currentSeason;
     }
 
     function _node(uint256 index, address account) private pure returns (bytes32) {

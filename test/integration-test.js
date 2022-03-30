@@ -5,8 +5,9 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const SEASON_1_URI = "https://mayors_1.io";
-    const SEASON_2_URI = "https://mayors_2.io";
+    const BASE_URI = "https://mayors.io";
+    const SEASON_1_URI = "season1";
+    const SEASON_2_URI = "season2";
 
     const LOOTBOXES_BATCH = 1570;
 
@@ -111,6 +112,7 @@ describe("Integration", function() {
             admin,
             "Mayors",
             "MRS",
+            BASE_URI,
             admin.address
         );
         lootbox = await deploy(
@@ -134,8 +136,10 @@ describe("Integration", function() {
                 LOOTBOXES_PER_ADDRESS,
                 MERKLE_ROOT
             ],
-            LOOTBOXES_CAP,
-            SEASON_1_URI,
+            [
+                [1, SEASON_1_URI],
+                [75501908, SEASON_2_URI]
+            ],
             admin.address
         );
 
@@ -211,19 +215,19 @@ describe("Integration", function() {
             let voteDiscount = await nft.getVoteDiscount(i);
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
@@ -256,22 +260,22 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+1);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+1);
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 99);
+                assert.equal(voteDiscount, 1);
                 assert.isAtMost(hashrate, 800);
                 assert.isAtLeast(hashrate, 400);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 98);
+                assert.equal(voteDiscount, 2);
                 assert.isAtMost(hashrate, 1650);
                 assert.isAtLeast(hashrate, 810);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 96);
+                assert.equal(voteDiscount, 4);
                 assert.isAtMost(hashrate, 6875);
                 assert.isAtLeast(hashrate, 3125);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 94);
+                assert.equal(voteDiscount, 6);
                 assert.isAtMost(hashrate, 28000);
                 assert.isAtLeast(hashrate, 13000);
             }
@@ -286,30 +290,26 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+2);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+2);
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 98);
+                assert.equal(voteDiscount, 2);
                 assert.isAtMost(hashrate, 2400);
                 assert.isAtLeast(hashrate, 1200);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 96);
+                assert.equal(voteDiscount, 4);
                 assert.isAtMost(hashrate, 4125);
                 assert.isAtLeast(hashrate, 2025);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 94);
+                assert.equal(voteDiscount, 6);
                 assert.isAtMost(hashrate, 13750);
                 assert.isAtLeast(hashrate, 6250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 92);
+                assert.equal(voteDiscount, 8);
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
             }
         }
-    });
-
-    it("Update season", async function() {
-        await marketplace.connect(admin).updateSeason(SEASON_2_URI);
     });
 
     it("Buy lootbox whitelist", async function() {
@@ -342,22 +342,22 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_2_URI+"/"+rarity+"/"+0);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_2_URI+"/"+i+"/"+0);
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }

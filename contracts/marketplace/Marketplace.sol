@@ -9,15 +9,19 @@ import "./MarketplaceSecondary.sol";
 contract Marketplace is MarketplaceConfiguration, MarketplacePrimary, MarketplaceSecondary {
     constructor(
         MarketplaceConfig memory config,
-        uint256 lootboxesTotal,
-        string memory seasonURI,
+        Season[] memory seasons,
         address owner
     ) {
         _config = config;
-        _seasonURI = seasonURI;
-        _lootboxesLeft = lootboxesTotal;
         _owner = owner;
 
-        emit LootboxesSaleStarted(lootboxesTotal, seasonURI);
+        uint256 seasonsLength = seasons.length;
+        if (seasonsLength == 0) revert MarketplaceErrors.NoSeasons();
+        for (uint256 i = 0; i < seasonsLength; i++) {
+            if (seasons[i].lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
+            _seasons.push(seasons[i]);
+        }
+
+        emit SeasonStarted(seasons[0].lootboxesNumber, seasons[0].uri);
     }
 }
