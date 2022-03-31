@@ -144,7 +144,10 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
                     "/",
                     _uintToASCIIBytes(tokenId),
                     "/",
-                    _uintToASCIIBytes(uint8(level))
+                    _uintToASCIIBytes(tokenId),
+                    "_",
+                    _uintToASCIIBytes(uint8(level)),
+                    ".json"
                 )
             );
     }

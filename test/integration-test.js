@@ -260,7 +260,7 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+1);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+i+"_"+1+".json");
 
             if (rarity == RARITIES.common) {
                 assert.equal(voteDiscount, 1);
@@ -290,7 +290,7 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+2);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_1_URI+"/"+i+"/"+i+"_"+2+".json");
 
             if (rarity == RARITIES.common) {
                 assert.equal(voteDiscount, 2);
@@ -342,7 +342,7 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_2_URI+"/"+i+"/"+0);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+SEASON_2_URI+"/"+i+"/"+i+"_"+0+".json");
 
             if (rarity == RARITIES.common) {
                 assert.equal(voteDiscount, 0);
