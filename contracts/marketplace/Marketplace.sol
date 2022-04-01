@@ -15,13 +15,6 @@ contract Marketplace is MarketplaceConfiguration, MarketplacePrimary, Marketplac
         _config = config;
         _owner = owner;
 
-        uint256 seasonsLength = seasons.length;
-        if (seasonsLength == 0) revert MarketplaceErrors.NoSeasons();
-        for (uint256 i = 0; i < seasonsLength; i++) {
-            if (seasons[i].lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
-            _seasons.push(seasons[i]);
-        }
-
-        emit SeasonStarted(seasons[0].lootboxesNumber, seasons[0].uri);
+        _addNewSeasons(seasons);
     }
 }

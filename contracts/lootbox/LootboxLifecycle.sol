@@ -14,7 +14,9 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
     }
 
     function reveal(uint256 tokenId) external override returns (uint256[] memory tokenIds) {
-        require(_isApprovedOrOwner(msg.sender, tokenId), "reveal: reveal caller is not owner nor approved");
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert LootboxErrors.NoPermission();
+        // solhint-disable-next-line not-rely-on-time
+        if (_unlockTimestamp[tokenId] > block.timestamp) revert LootboxErrors.NotUnlocked();
 
         tokenIds = _config.nft.batchMint(msg.sender, _seasonURI[tokenId], _config.numberInLootbox);
 
@@ -24,22 +26,23 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         return tokenIds;
     }
 
-    function mint(string calldata seasonURI, address owner)
-        external
-        override
-        isMarketplaceOrOwner
-        returns (uint256 tokenId)
-    {
+    function mint(
+        string calldata seasonURI,
+        address owner,
+        uint256 unlockTimestamp
+    ) external override isMarketplaceOrOwner returns (uint256 tokenId) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
         _seasonURI[id] = seasonURI;
+        _unlockTimestamp[id] = unlockTimestamp;
         return id;
     }
 
     function batchMint(
         uint256 number,
         string calldata seasonURI,
-        address owner
+        address owner,
+        uint256 unlockTimestamp
     ) external override isMarketplaceOrOwner {
         _balances[owner] += number;
 
@@ -47,6 +50,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
             uint256 id = _tokenIdCounter++;
             _owners[id] = owner;
             _seasonURI[id] = seasonURI;
+            _unlockTimestamp[id] = unlockTimestamp;
 
             emit Transfer(address(0), owner, id);
         }

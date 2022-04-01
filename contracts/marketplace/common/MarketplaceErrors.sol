@@ -9,12 +9,17 @@ library MarketplaceErrors {
     error NoSeasons();
     error EmptySeason();
     error SameValue();
-    error NullValue();
     error NotTradable();
     error AlreadyOwner();
     error NotOnSale();
     error SameConfig();
-    error OutOfStock();
     error NotValidPrice();
     error NotItemOwner();
+    error UnexistingSeason();
+    error ZeroPrice();
+    error NoURI();
+    error SeasonNotStarted();
+    error SeasonFinished();
+    error LootboxesEnded();
+    error WrongTimestamps();
 }
