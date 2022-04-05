@@ -55,4 +55,12 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
             emit Transfer(address(0), owner, id);
         }
     }
+
+    function getUnlockTimestamp(uint256 tokenId) external view override returns (uint256) {
+        return _unlockTimestamp[tokenId];
+    }
+
+    function getSeasonUriTimestamp(uint256 tokenId) external view override returns (string memory) {
+        return _seasonURI[tokenId];
+    }
 }

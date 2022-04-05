@@ -17,4 +17,8 @@ interface ILootboxLifecycle {
         address owner,
         uint256 unlockTimestamp
     ) external;
+
+    function getUnlockTimestamp(uint256 tokenId) external view returns (uint256);
+
+    function getSeasonUriTimestamp(uint256 tokenId) external view returns (string memory);
 }
