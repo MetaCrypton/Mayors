@@ -13,26 +13,54 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         _;
     }
 
-    function reveal(uint256 tokenId, string[] calldata names) external override returns (uint256[] memory tokenIds) {
-        if (names.length != _config.numberInLootbox) revert LootboxErrors.Overflow();
-        require(_isApprovedOrOwner(msg.sender, tokenId), "reveal: reveal caller is not owner nor approved");
+    function reveal(uint256 tokenId) external override returns (uint256[] memory tokenIds) {
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert LootboxErrors.NoPermission();
+        // solhint-disable-next-line not-rely-on-time
+        if (_unlockTimestamp[tokenId] > block.timestamp) revert LootboxErrors.NotUnlocked();
 
-        tokenIds = _config.nft.batchMint(msg.sender, names);
+        tokenIds = _config.nft.batchMint(msg.sender, _seasonURI[tokenId], _config.numberInLootbox);
+
         _burn(tokenId);
+        delete _seasonURI[tokenId];
 
         return tokenIds;
     }
 
-    /**
-     * @dev Mints `tokenId`. See {ERC721-_mint}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function mint(address owner) public override isMarketplaceOrOwner returns (uint256 tokenId) {
+    function mint(
+        string calldata seasonURI,
+        address owner,
+        uint256 unlockTimestamp
+    ) external override isMarketplaceOrOwner returns (uint256 tokenId) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
+        _seasonURI[id] = seasonURI;
+        _unlockTimestamp[id] = unlockTimestamp;
         return id;
+    }
+
+    function batchMint(
+        uint256 number,
+        string calldata seasonURI,
+        address owner,
+        uint256 unlockTimestamp
+    ) external override isMarketplaceOrOwner {
+        _balances[owner] += number;
+
+        while (number-- > 1) {
+            uint256 id = _tokenIdCounter++;
+            _owners[id] = owner;
+            _seasonURI[id] = seasonURI;
+            _unlockTimestamp[id] = unlockTimestamp;
+
+            emit Transfer(address(0), owner, id);
+        }
+    }
+
+    function getUnlockTimestamp(uint256 tokenId) external view override returns (uint256) {
+        return _unlockTimestamp[tokenId];
+    }
+
+    function getSeasonUriTimestamp(uint256 tokenId) external view override returns (string memory) {
+        return _seasonURI[tokenId];
     }
 }

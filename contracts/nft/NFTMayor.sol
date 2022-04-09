@@ -4,32 +4,23 @@
 pragma solidity ^0.8.0;
 
 import "./NFTERC721.sol";
-import "./NFTInventories.sol";
+import "./NFTModifiers.sol";
 import "./interfaces/INFT.sol";
 import "./helpers/IRarityCalculator.sol";
 import "./common/NFTConstants.sol";
 import "../marketplace/common/MarketplaceStructs.sol";
-import "../inventory/Inventory.sol";
 
-contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
-    function batchMint(address owner, string[] calldata names)
-        external
-        override
-        isLootboxOrOwner
-        returns (uint256[] memory tokenIds)
-    {
-        if (names.length > type(uint8).max) revert NFTErrors.Overflow();
-        uint256 length = names.length;
-
-        tokenIds = new uint256[](length);
-        for (uint256 i = 0; i < length; i++) {
-            if (bytes(names[i]).length == 0) revert NFTErrors.EmptyName();
-
+contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
+    function batchMint(
+        address owner,
+        string calldata seasonURI,
+        uint256 numberToMint
+    ) external override isLootboxOrOwner returns (uint256[] memory tokenIds) {
+        tokenIds = new uint256[](numberToMint);
+        for (uint256 i = 0; i < numberToMint; i++) {
             uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
             tokenIds[i] = tokenId;
-            _names[tokenId] = names[i];
-            _inventories[tokenId] = _deployInventory(tokenId);
-            emit NameSet(tokenId, names[i]);
+            _seasonURI[tokenId] = seasonURI;
         }
 
         return tokenIds;
@@ -37,14 +28,11 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
 
     function updateLevel(uint256 tokenId) external override isExistingToken(tokenId) isOwner {
         if (_config.levelUpgradesAddress != msg.sender) revert NFTErrors.NotEligible();
-        uint8 currentLevel = uint8(_levels[tokenId]);
-        if (currentLevel == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
-        _levels[tokenId] = Level(currentLevel + 1);
-        emit LevelUpdated(tokenId, Level(currentLevel + 1));
-    }
+        Level currentLevel = _levels[tokenId];
+        if (uint8(currentLevel) == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
+        _levels[tokenId] = Level(uint8(currentLevel) + 1);
 
-    function getName(uint256 tokenId) external view override isExistingToken(tokenId) returns (string memory) {
-        return _names[tokenId];
+        emit LevelUpdated(tokenId, Level(uint8(currentLevel) + 1));
     }
 
     function getLevel(uint256 tokenId) external view override isExistingToken(tokenId) returns (Level) {
@@ -63,11 +51,21 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         return IRarityCalculator(_config.rarityCalculator).getHashrate(level, rarity, baseHashrate);
     }
 
-    function getVotePrice(uint256 tokenId) external view override isExistingToken(tokenId) returns (uint256) {
+    function getVotePrice(uint256 tokenId, uint256 votePrice)
+        external
+        view
+        override
+        isExistingToken(tokenId)
+        returns (uint256)
+    {
+        return (votePrice * _getVoteMultiplier(tokenId)) / 100;
+    }
+
+    function getVoteDiscount(uint256 tokenId) public view override isExistingToken(tokenId) returns (uint256) {
         Level level = _levels[tokenId];
         Rarity rarity = _rarities[tokenId];
 
-        return IRarityCalculator(_config.rarityCalculator).getVotePrice(level, rarity);
+        return IRarityCalculator(_config.rarityCalculator).getVoteDiscount(level, rarity);
     }
 
     function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
@@ -87,7 +85,10 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTInventories {
         _baseHashrates[id] = hashrate;
     }
 
-    function _deployInventory(uint256 tokenId) internal returns (address inventory) {
-        return address(new Inventory(tokenId));
+    function _getVoteMultiplier(uint256 tokenId) internal view isExistingToken(tokenId) returns (uint256) {
+        Level level = _levels[tokenId];
+        Rarity rarity = _rarities[tokenId];
+
+        return IRarityCalculator(_config.rarityCalculator).getVoteMultiplier(level, rarity);
     }
 }

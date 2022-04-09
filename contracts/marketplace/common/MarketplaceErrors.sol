@@ -3,14 +3,23 @@
 pragma solidity ^0.8.0;
 
 library MarketplaceErrors {
-    error NotEligible();
-    error TooManyLootboxes();
+    error NotInMerkleTree();
+    error NotInWhiteList();
+    error TooManyLootboxesPerAddress();
+    error NoSeasons();
+    error EmptySeason();
     error SameValue();
     error NotTradable();
     error AlreadyOwner();
     error NotOnSale();
     error SameConfig();
-    error OutOfStock();
     error NotValidPrice();
     error NotItemOwner();
+    error UnexistingSeason();
+    error ZeroPrice();
+    error NoURI();
+    error SeasonNotStarted();
+    error SeasonFinished();
+    error LootboxesEnded();
+    error WrongTimestamps();
 }

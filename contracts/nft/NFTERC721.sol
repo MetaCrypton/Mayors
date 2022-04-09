@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "./common/NFTStorage.sol";
+import "./common/NFTErrors.sol";
 import "./interfaces/INFT.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC721.sol";
@@ -129,7 +130,26 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        return bytes(_baseURI).length > 0 ? string(abi.encodePacked(_baseURI, tokenId._toString())) : "";
+        string memory baseURI = _baseURI;
+        string memory seasonURI = _seasonURI[tokenId];
+
+        Level level = _levels[tokenId];
+
+        return
+            string(
+                abi.encodePacked(
+                    baseURI,
+                    "/",
+                    seasonURI,
+                    "/",
+                    _uintToASCIIBytes(tokenId),
+                    "/",
+                    _uintToASCIIBytes(tokenId),
+                    "_",
+                    _uintToASCIIBytes(uint8(level)),
+                    ".json"
+                )
+            );
     }
 
     /**
@@ -270,6 +290,35 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         require(_exists(tokenId), "ERC721: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
+    }
+
+    /**
+     * @notice Original Copyright (c) 2015-2016 Oraclize SRL
+     * @notice Original Copyright (c) 2016 Oraclize LTD
+     * @notice Modified Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
+     * @dev Converts an unsigned integer to its bytes representation
+     * @notice https://github.com/provable-things/ethereum-api/blob/master/oraclizeAPI_0.5.sol#L1045
+     * @param num The number to be converted
+     * @return Bytes representation of the number
+     */
+    function _uintToASCIIBytes(uint256 num) internal pure returns (bytes memory) {
+        uint256 _i = num;
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        while (_i != 0) {
+            bstr[len - 1] = bytes1(uint8(48 + (_i % 10)));
+            _i /= 10;
+            len--;
+        }
+        return bstr;
     }
 
     /**

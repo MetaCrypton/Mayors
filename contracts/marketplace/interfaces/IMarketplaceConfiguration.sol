@@ -7,5 +7,11 @@ import "../common/MarketplaceStructs.sol";
 interface IMarketplaceConfiguration {
     function updateConfig(MarketplaceConfig calldata config) external;
 
+    function addNewSeasons(Season[] calldata seasons) external;
+
     function getConfig() external view returns (MarketplaceConfig memory);
+
+    function getSeasonsTotal() external view returns (uint256);
+
+    function getSeasons(uint256 start, uint256 number) external view returns (Season[] memory);
 }

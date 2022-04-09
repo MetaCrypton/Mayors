@@ -9,12 +9,10 @@ import "../../common/erc721/ERC721Storage.sol";
 contract NFTStorage is ERC721Storage, OwnableStorage {
     NFTConfig internal _config;
 
+    mapping(uint256 => string) internal _seasonURI;
+
     mapping(uint256 => Rarity) internal _rarities;
     mapping(uint256 => uint256) internal _baseHashrates;
 
-    mapping(uint256 => string) internal _names;
     mapping(uint256 => Level) internal _levels;
-
-    // Mapping from token ID to inventory address
-    mapping(uint256 => address) internal _inventories;
 }
