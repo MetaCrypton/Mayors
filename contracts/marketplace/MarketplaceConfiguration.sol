@@ -14,47 +14,48 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
         emit ConfigUpdated();
     }
 
-    function finishLootboxesSale() external override isOwner {
-        _lootboxesLeft = 0;
-        emit LootboxesSaleFinished();
-    }
-
-    function startLootboxesSale(uint256 number, string calldata uri) external override isOwner {
-        _seasonURI = uri;
-        _lootboxesLeft = number;
-
-        emit LootboxesSaleStarted(number, uri);
-    }
-
-    function addLootboxesForSale(uint256 number) external override isOwner {
-        if (number == 0) revert MarketplaceErrors.NullValue();
-        _lootboxesLeft += number;
-        emit AddedLootboxesForSale(number);
-    }
-
-    function burnLootboxesForSale(uint256 number) external override isOwner {
-        if (number == 0) revert MarketplaceErrors.NullValue();
-        if (_lootboxesLeft <= number) {
-            _lootboxesLeft = 0;
-        } else {
-            _lootboxesLeft -= number;
-        }
-        emit RemovedLootboxesForSale(number);
-    }
-
-    function updateSeason(string calldata uri) external override isOwner {
-        if (keccak256(abi.encodePacked(_seasonURI)) == keccak256(abi.encodePacked(uri)))
-            revert MarketplaceErrors.SameValue();
-        _seasonURI = uri;
-
-        emit SeasonUpdated(uri);
+    function addNewSeasons(Season[] calldata seasons) external override isOwner {
+        _addNewSeasons(seasons);
     }
 
     function getConfig() external view override returns (MarketplaceConfig memory) {
         return _config;
     }
 
-    function getSeasonURI() external view override returns (string memory) {
-        return _seasonURI;
+    function getSeasonsTotal() external view override returns (uint256) {
+        return _seasons.length;
+    }
+
+    function getSeasons(uint256 start, uint256 number) external view override returns (Season[] memory) {
+        if (start + number > _seasons.length) revert MarketplaceErrors.UnexistingSeason();
+
+        Season[] memory seasons = new Season[](number);
+        for (uint256 i = 0; i < number; i++) {
+            seasons[i] = _seasons[start + i];
+        }
+        return seasons;
+    }
+
+    function _addNewSeasons(Season[] memory seasons) internal {
+        uint256 seasonsLength = seasons.length;
+        if (seasonsLength == 0) revert MarketplaceErrors.NoSeasons();
+        for (uint256 i = 0; i < seasonsLength; i++) {
+            Season memory season = seasons[i];
+            if (season.startTimestamp > season.endTimestamp) revert MarketplaceErrors.WrongTimestamps();
+            if (season.lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
+            if (season.lootboxPrice == 0) revert MarketplaceErrors.ZeroPrice();
+            if (bytes(season.uri).length == 0) revert MarketplaceErrors.NoURI();
+            _seasons.push(season);
+
+            emit SeasonAdded(
+                season.startTimestamp,
+                season.endTimestamp,
+                season.lootboxesNumber,
+                season.lootboxPrice,
+                season.lootboxesPerAddress,
+                season.merkleRoot,
+                season.uri
+            );
+        }
     }
 }

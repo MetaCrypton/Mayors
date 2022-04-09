@@ -8,4 +8,5 @@ library LootboxErrors {
     error NoPermission();
     error Overflow();
     error SameConfig();
+    error NotUnlocked();
 }

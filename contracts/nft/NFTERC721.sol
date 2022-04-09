@@ -130,14 +130,25 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        string memory baseURI = _seasonURI[tokenId];
+        string memory baseURI = _baseURI;
+        string memory seasonURI = _seasonURI[tokenId];
 
-        Rarity rarity = _rarities[tokenId];
         Level level = _levels[tokenId];
 
         return
             string(
-                abi.encodePacked(baseURI, "/", _uintToASCIIBytes(uint8(rarity)), "/", _uintToASCIIBytes(uint8(level)))
+                abi.encodePacked(
+                    baseURI,
+                    "/",
+                    seasonURI,
+                    "/",
+                    _uintToASCIIBytes(tokenId),
+                    "/",
+                    _uintToASCIIBytes(tokenId),
+                    "_",
+                    _uintToASCIIBytes(uint8(level)),
+                    ".json"
+                )
             );
     }
 

@@ -5,15 +5,14 @@ const { keccak256 } = require('@ethersproject/solidity');
 describe("Integration", function() {
     this.timeout(20000);
 
-    const SEASON_1_URI = "https://mayors_1.io";
-    const SEASON_2_URI = "https://mayors_2.io";
+    const BASE_URI = "https://baseuri.io";
 
-    const LOOTBOXES_BATCH = 1570;
-
-    const LOOTBOXES_CAP = 30000;
-    const LOOTBOXES_PER_ADDRESS = 3;
     const NUMBER_IN_LOOTBOXES = 3;
-    const PRICE = 100;
+
+    const SEASON_ID_1 = 0;
+    const SEASON_ID_2 = 1;
+    const LOOTBOXES_BATCH = 1497;
+
     const ALICE_MINT = 100;
     const CHARLIE_MINT = 200;
     const RESALE_PRICE = CHARLIE_MINT;
@@ -28,8 +27,6 @@ describe("Integration", function() {
     const GEN0 = 0;
     const GEN1 = 1;
     const GEN2 = 2;
-
-    const MERKLE_ROOT = "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80";
 
     const RATES = {
         common: 69,
@@ -48,6 +45,30 @@ describe("Integration", function() {
         ERC20: 1,
         ERC721: 2,
     }
+
+    let season1 = {
+        startTimestamp: 0,
+        endTimestamp: 0,
+        lootboxesNumber: 1,
+        lootboxPrice: 100,
+        lootboxesPerAddress: 3,
+        lootboxesUnlockTimestamp: 0,
+        merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
+        isPublic: true,
+        uri: "season1"
+    };
+
+    let season2 = {
+        startTimestamp: 0,
+        endTimestamp: 0,
+        lootboxesNumber: LOOTBOXES_BATCH + 1,
+        lootboxPrice: 100,
+        lootboxesPerAddress: LOOTBOXES_BATCH,
+        lootboxesUnlockTimestamp: 0,
+        merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
+        isPublic: true,
+        uri: "season2"
+    };
 
     let admin, alice, bob, charlie;
     let coder;
@@ -111,6 +132,7 @@ describe("Integration", function() {
             admin,
             "Mayors",
             "MRS",
+            BASE_URI,
             admin.address
         );
         lootbox = await deploy(
@@ -130,12 +152,11 @@ describe("Integration", function() {
                 token1.address,
                 token2.address,
                 admin.address,
-                PRICE,
-                LOOTBOXES_PER_ADDRESS,
-                MERKLE_ROOT
             ],
-            LOOTBOXES_CAP,
-            SEASON_1_URI,
+            [
+                season1,
+                season2
+            ],
             admin.address
         );
 
@@ -161,21 +182,21 @@ describe("Integration", function() {
         await token2.connect(admin).mint(charlie.address, CHARLIE_MINT);
     });
 
-    it("Set eligibles", async function() {
-        await marketplace.connect(admin).addToWhiteList([alice.address, bob.address]);
+    it("Set eligibles for season 2", async function() {
+        await marketplace.connect(admin).addToWhiteList(SEASON_ID_2, [alice.address, bob.address]);
     });
 
-    it("Buy lootbox merkle proof", async function() {
+    it("Buy lootbox merkle proof from season 1", async function() {
         assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
         assert.equal(await token1.balanceOf(admin.address), 0);
 
-        await token1.connect(alice).approve(marketplace.address, PRICE);
-        await marketplace.connect(alice).buyLootboxMP(1, [
+        await token1.connect(alice).approve(marketplace.address, season1.lootboxPrice);
+        await marketplace.connect(alice).buyLootboxMP(SEASON_ID_1, 1, [
             "0xec7c6f475a6906fcbf6e554651d7b7ee5189b7720b5b5156114f584164683940"
         ]);
 
         assert.equal(await token1.balanceOf(alice.address), 0);
-        assert.equal(await token1.balanceOf(admin.address), PRICE);
+        assert.equal(await token1.balanceOf(admin.address), season1.lootboxPrice);
     });
 
     it("Sell lootbox", async function() {
@@ -211,19 +232,19 @@ describe("Integration", function() {
             let voteDiscount = await nft.getVoteDiscount(i);
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
@@ -256,22 +277,22 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+1);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+season1.uri+"/"+i+"/"+i+"_"+1+".json");
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 99);
+                assert.equal(voteDiscount, 1);
                 assert.isAtMost(hashrate, 800);
                 assert.isAtLeast(hashrate, 400);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 98);
+                assert.equal(voteDiscount, 2);
                 assert.isAtMost(hashrate, 1650);
                 assert.isAtLeast(hashrate, 810);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 96);
+                assert.equal(voteDiscount, 4);
                 assert.isAtMost(hashrate, 6875);
                 assert.isAtLeast(hashrate, 3125);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 94);
+                assert.equal(voteDiscount, 6);
                 assert.isAtMost(hashrate, 28000);
                 assert.isAtLeast(hashrate, 13000);
             }
@@ -286,30 +307,26 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+2);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+season1.uri+"/"+i+"/"+i+"_"+2+".json");
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 98);
+                assert.equal(voteDiscount, 2);
                 assert.isAtMost(hashrate, 2400);
                 assert.isAtLeast(hashrate, 1200);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 96);
+                assert.equal(voteDiscount, 4);
                 assert.isAtMost(hashrate, 4125);
                 assert.isAtLeast(hashrate, 2025);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 94);
+                assert.equal(voteDiscount, 6);
                 assert.isAtMost(hashrate, 13750);
                 assert.isAtLeast(hashrate, 6250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 92);
+                assert.equal(voteDiscount, 8);
                 assert.isAtMost(hashrate, 42000);
                 assert.isAtLeast(hashrate, 19500);
             }
         }
-    });
-
-    it("Update season", async function() {
-        await marketplace.connect(admin).updateSeason(SEASON_2_URI);
     });
 
     it("Buy lootbox whitelist", async function() {
@@ -318,12 +335,12 @@ describe("Integration", function() {
         assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
         assert.equal(await token1.balanceOf(admin.address), 0);
 
-        await token1.connect(alice).approve(marketplace.address, PRICE);
+        await token1.connect(alice).approve(marketplace.address, season2.lootboxPrice);
 
-        await marketplace.connect(alice).buyLootbox();
+        await marketplace.connect(alice).buyLootbox(SEASON_ID_2);
 
         assert.equal(await token1.balanceOf(alice.address), 0);
-        assert.equal(await token1.balanceOf(admin.address), PRICE);
+        assert.equal(await token1.balanceOf(admin.address), season2.lootboxPrice);
     });
 
     it("Reveal lootbox", async function() {
@@ -342,22 +359,22 @@ describe("Integration", function() {
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            assert.equal(await nft.tokenURI(i), SEASON_2_URI+"/"+rarity+"/"+0);
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+season2.uri+"/"+i+"/"+i+"_"+0+".json");
 
             if (rarity == RARITIES.common) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 200);
                 assert.isAtLeast(hashrate, 100);
             } else if (rarity == RARITIES.rare) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 550);
                 assert.isAtLeast(hashrate, 270);
             } else if (rarity == RARITIES.epic) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 2750);
                 assert.isAtLeast(hashrate, 1250);
             } else if (rarity == RARITIES.legendary) {
-                assert.equal(voteDiscount, 100);
+                assert.equal(voteDiscount, 0);
                 assert.isAtMost(hashrate, 14000);
                 assert.isAtLeast(hashrate, 6500);
             }
@@ -366,7 +383,7 @@ describe("Integration", function() {
 
     it("Send lootboxes in batch", async function() {
         assert.equal(await lootbox.balanceOf(alice.address), 0);
-        let tx = await marketplace.connect(admin).sendLootboxes(LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
+        let tx = await marketplace.connect(admin).sendLootboxes(SEASON_ID_2, LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
 
         assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
     });

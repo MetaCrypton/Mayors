@@ -87,6 +87,10 @@ contract RarityCalculator is IRarityCalculator {
     }
 
     function getVoteDiscount(Level level, Rarity rarity) external pure override returns (uint256) {
+        return 100 - getVoteMultiplier(level, rarity);
+    }
+
+    function getVoteMultiplier(Level level, Rarity rarity) public pure override returns (uint256) {
         if (rarity == Rarity.Common) {
             if (level == Level.Gen0) {
                 return NFTConstants.VOTE_MULTIPLIER_COMMON_GEN0;

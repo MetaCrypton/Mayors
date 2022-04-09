@@ -9,7 +9,7 @@
 $ npm install
 
 # Set private key:
-$ echo -n "PRIVATE_KEY=0x7ff8c90cb78ec105f8987f450cf0df4a66dea8497df750f1fec1ecb1b789336a" > .env
+$ echo -n "PRIVATE_KEY=0x9d3c762f8732713986756a11c52e6cb60eabc7c2e79d52876ca51425456f1616" > .env
 
 # Run tests:
 $ npm run test
