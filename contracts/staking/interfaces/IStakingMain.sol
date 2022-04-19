@@ -11,9 +11,9 @@ interface IStakingMain {
 
     function unstakeVotes() external;
 
-    function getVouchersAmount() external returns (uint256 totalAmount);
-
-    function getVotesAmount() external returns (uint256 totalAmount);
-
     function withdrawVouchers(address recipient) external;
+
+    function getVouchersAmount() external view returns (uint256 totalAmount);
+
+    function getVotesAmount() external view returns (uint256 totalAmount);
 }

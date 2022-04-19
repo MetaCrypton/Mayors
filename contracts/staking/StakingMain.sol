@@ -27,7 +27,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         Stake memory stake = Stake({ startDate: block.timestamp, amount: votesNumber });
         _stakes[msg.sender].push(stake);
 
-        // TODO: (?)change IERC20 to IVote
+        // TODO: change IERC20 to IVote
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
     }
 
@@ -50,7 +50,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         IVoucher(_config.voucherAddress).mint(msg.sender, totalAmount);
     }
 
-    function withdrawVouchers(address recipient) external override {
+    function withdrawVouchers(address recipient) external override isOwner {
         uint256 length = _stakes[recipient].length;
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < length; i++) {
@@ -86,6 +86,6 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
     function _calculateVouchers(Stake memory stake) private view returns (uint256) {
         uint256 delta = block.timestamp - stake.startDate;
-        return ((stake.amount / 500) * delta) % (1 days);
+        return ((stake.amount / 500) * delta) / (1 days);
     }
 }
