@@ -5,27 +5,38 @@ pragma solidity ^0.8.0;
 import "./StakingMain.sol";
 import "./interfaces/IStakingMain.sol";
 import "./interfaces/IStakingEvents.sol";
+import "./common/StakingConstants.sol";
 import "./common/StakingErrors.sol";
 import "./common/StakingStorage.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC20.sol";
 import "../voucher/interfaces/IVoucher.sol";
+// import "hardhat/console.sol";
 
 contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
-    function changeThreshold(uint256 threshold) external override isOwner {
-        _votesThreshold = threshold;
-    }
-
     function stakeVotes(uint256 votesNumber) external override {
-        // TODO: check remainder
-        if (votesNumber / 100 != 0) revert StakingErrors.WrongMultiplicity();
+        uint256 remainder = votesNumber - (votesNumber / StakingConstants.STAKE_STEP) * StakingConstants.STAKE_STEP;
+        if (votesNumber < StakingConstants.STAKE_STEP || remainder != 0) revert StakingErrors.WrongMultiplicity();
 
-        // TODO: check threshold
+        // the first stake must be more then the threshold
+        Stake[] storage stakes = _stakes[msg.sender];
+        if (stakes.length == 0 && votesNumber != _votesThreshold) revert StakingErrors.NotEnoughVotesForStake();
 
-        // TODO: check votes number on the user's wallet
+        // check deplay between stakes
+        if (stakes.length != 0) {
+            Stake memory lastStake = stakes[stakes.length - 1];
+            if (lastStake.startDate < block.timestamp) revert StakingErrors.StakeDateBeforeNow();
 
+            uint256 timeDelta = lastStake.startDate - block.timestamp;
+            if (timeDelta < StakingConstants.STAKE_COOLDOWN) revert StakingErrors.TooOftenStaking();
+        }
+
+        // check user balance
+        if (IERC20(_config.voteAddress).balanceOf(msg.sender) < votesNumber) revert StakingErrors.NotEnoughVotes();
+
+        // append new stake
         Stake memory stake = Stake({ startDate: block.timestamp, amount: votesNumber });
-        _stakes[msg.sender].push(stake);
+        stakes.push(stake);
 
         // TODO: change IERC20 to IVote
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
@@ -64,14 +75,12 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         IVoucher(_config.voucherAddress).mint(recipient, totalAmount);
     }
 
-    function getVouchersAmount() external view override returns (uint256) {
-        uint256 length = _stakes[msg.sender].length;
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < length; i++) {
-            Stake memory stake = _stakes[msg.sender][i];
-            totalAmount += _calculateVouchers(stake);
-        }
-        return totalAmount;
+    function setThreshold(uint256 threshold) external override isOwner {
+        _votesThreshold = threshold;
+    }
+
+    function getThreshold() external view override returns (uint256) {
+        return _votesThreshold;
     }
 
     function getVotesAmount() external view override returns (uint256) {
@@ -80,6 +89,16 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         for (uint256 i = 0; i < length; i++) {
             Stake memory stake = _stakes[msg.sender][i];
             totalAmount += stake.amount;
+        }
+        return totalAmount;
+    }
+
+    function getVouchersAmount() external view override returns (uint256) {
+        uint256 length = _stakes[msg.sender].length;
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < length; i++) {
+            Stake memory stake = _stakes[msg.sender][i];
+            totalAmount += _calculateVouchers(stake);
         }
         return totalAmount;
     }

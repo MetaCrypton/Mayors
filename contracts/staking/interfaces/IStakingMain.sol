@@ -5,15 +5,17 @@ pragma solidity ^0.8.0;
 import "../common/StakingStructs.sol";
 
 interface IStakingMain {
-    function changeThreshold(uint256 threshold) external;
-
     function stakeVotes(uint256 votesNumber) external;
 
     function unstakeVotes() external;
 
     function withdrawVouchers(address recipient) external;
 
-    function getVouchersAmount() external view returns (uint256 totalAmount);
+    function setThreshold(uint256 threshold) external;
+
+    function getThreshold() external view returns (uint256);
 
     function getVotesAmount() external view returns (uint256 totalAmount);
+
+    function getVouchersAmount() external view returns (uint256 totalAmount);
 }

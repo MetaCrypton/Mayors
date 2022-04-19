@@ -404,16 +404,23 @@ describe("Integration", function() {
     });
 
     it("Stake votes", async function() {
-        await voteToken.connect(admin).mint(alice.address, ALICE_MINT);
+        await voteToken.connect(admin).mint(alice.address, 1000);
         await voteToken.connect(admin).mint(bob.address, BOB_MINT);
+        await voteToken.connect(alice).approve(staking.address, 1000);
 
-        assert.equal(await voteToken.balanceOf(alice.address), ALICE_MINT);
-        assert.equal(await voteToken.balanceOf(staking.address), 0);
-        await voteToken.connect(alice).approve(staking.address, ALICE_MINT);
-        await staking.connect(alice).stakeVotes(15);
-        assert.equal(await voteToken.balanceOf(alice.address), ALICE_MINT - 15);
-        assert.equal(await voteToken.balanceOf(staking.address), 15);
+        await expect(staking.connect(alice).stakeVotes(15)).to.be.revertedWith('WrongMultiplicity()');
+        await expect(staking.connect(alice).stakeVotes(200)).to.be.revertedWith('NotEnoughVotesForStake()');
 
-        assert.equal(await staking.connect(alice).getVotesAmount(), 15);
+        await staking.connect(alice).stakeVotes(500);
+        assert.equal(await voteToken.balanceOf(alice.address), 500);
+        assert.equal(await voteToken.balanceOf(staking.address), 500);
+
+        // TODO: check time delay;
+
+        // await staking.connect(alice).stakeVotes(100);
+        // assert.equal(await voteToken.balanceOf(alice.address), 400);
+        // assert.equal(await voteToken.balanceOf(staking.address), 600);
+
+        assert.equal(await staking.connect(alice).getVotesAmount(), 500);
     });
 });

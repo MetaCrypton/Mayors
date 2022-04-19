@@ -12,5 +12,6 @@ contract Staking is StakingMain, StakingConfiguration {
     constructor(StakingConfig memory config, address owner) {
         _config = config;
         _owner = owner;
+        _votesThreshold = 500;
     }
 }

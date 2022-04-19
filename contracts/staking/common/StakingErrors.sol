@@ -4,15 +4,9 @@ pragma solidity ^0.8.0;
 
 library StakingErrors {
     error WrongMultiplicity();
-    // error NoPermission();
-    // error SameAddress();
+    error TooOftenStaking();
+    error NotEnoughVotes();
+    error NotEnoughVotesForStake();
     error SameConfig();
-    // error SameRates();
-    // error NotEligible();
-    // error WrongRarity();
-    // error Overflow();
-    // error UnexistingToken();
-    // error SameValue();
-    // error WrongLevel();
-    // error MaxLevel();
+    error StakeDateBeforeNow();
 }
