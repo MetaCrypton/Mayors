@@ -78,6 +78,9 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
+    let voteToken;
+    let voucherToken;
+    let staking;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -156,6 +159,18 @@ describe("Integration", function() {
             [
                 season1,
                 season2
+            ],
+            admin.address
+        );
+        // TODO: change Token to Vote
+        voteToken = await deploy("Token", admin, "Vote token", "Vote", admin.address);
+        voucherToken = await deploy("Voucher", admin, "Voucher token", "BVoucher", admin.address);
+        staking = await deploy(
+            "Staking",
+            admin,
+            [
+                voteToken.address,
+                voucherToken.address,
             ],
             admin.address
         );
@@ -386,5 +401,19 @@ describe("Integration", function() {
         let tx = await marketplace.connect(admin).sendLootboxes(SEASON_ID_2, LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
 
         assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
+    });
+
+    it("Stake votes", async function() {
+        await voteToken.connect(admin).mint(alice.address, ALICE_MINT);
+        await voteToken.connect(admin).mint(bob.address, BOB_MINT);
+
+        assert.equal(await voteToken.balanceOf(alice.address), ALICE_MINT);
+        assert.equal(await voteToken.balanceOf(staking.address), 0);
+        await voteToken.connect(alice).approve(staking.address, ALICE_MINT);
+        await staking.connect(alice).stakeVotes(15);
+        assert.equal(await voteToken.balanceOf(alice.address), ALICE_MINT - 15);
+        assert.equal(await voteToken.balanceOf(staking.address), 15);
+
+        assert.equal(await staking.connect(alice).getVotesAmount(), 15);
     });
 });
