@@ -12,7 +12,7 @@ import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC20.sol";
 import "../voucher/interfaces/IVoucher.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     function stakeVotes(uint256 votesNumber) external override {
@@ -26,9 +26,9 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         // check deplay between stakes
         if (stakes.length != 0) {
             Stake memory lastStake = stakes[stakes.length - 1];
-            if (lastStake.startDate < block.timestamp) revert StakingErrors.StakeDateBeforeNow();
+            if (lastStake.startDate > block.timestamp) revert StakingErrors.StakeDateBeforeNow();
 
-            uint256 timeDelta = lastStake.startDate - block.timestamp;
+            uint256 timeDelta = block.timestamp - lastStake.startDate;
             if (timeDelta < StakingConstants.STAKE_COOLDOWN) revert StakingErrors.TooOftenStaking();
         }
 
@@ -44,22 +44,21 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     }
 
     function unstakeVotes() external override isOwner {
-        uint256 length = _stakes[msg.sender].length;
-        uint256 totalAmount = 0;
+        Stake[] storage stakes = _stakes[msg.sender];
+        uint256 vouchersNumber = 0;
         uint256 votesNumber = 0;
-        for (uint256 i = 0; i < length; i++) {
-            Stake storage stake = _stakes[msg.sender][i];
-            totalAmount += _calculateVouchers(stake);
-            votesNumber += stake.amount;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            vouchersNumber += _calculateVouchers(stakes[i]);
+            votesNumber += stakes[i].amount;
 
-            // TODO: free storage
-            // delete stake;
+            // free storage
+            delete stakes[i];
         }
 
         delete _stakes[msg.sender];
 
         IERC20(_config.voteAddress).transferFrom(address(this), msg.sender, votesNumber);
-        IVoucher(_config.voucherAddress).mint(msg.sender, totalAmount);
+        IVoucher(_config.voucherAddress).mint(msg.sender, vouchersNumber);
     }
 
     function withdrawVouchers(address recipient) external override isOwner {
