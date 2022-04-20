@@ -403,6 +403,16 @@ describe("Integration", function() {
         assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
     });
 
+    it("Mint and burn vouchers", async function() {
+        await voucherToken.connect(admin).mint(alice.address, 1000);
+        await expect(voucherToken.connect(alice).mint(alice.address, 1000)).to.be.revertedWith('NotOwner()');
+        assert.equal(await voucherToken.balanceOf(alice.address), 1000);
+
+        await voucherToken.connect(admin).burn(alice.address, 500);
+        await expect(voucherToken.connect(alice).burn(alice.address, 500)).to.be.revertedWith('NotOwner()');
+        assert.equal(await voucherToken.balanceOf(alice.address), 500);
+    });
+
     it("Stake votes", async function() {
         await voteToken.connect(admin).mint(alice.address, 1000);
         await voteToken.connect(admin).mint(bob.address, BOB_MINT);

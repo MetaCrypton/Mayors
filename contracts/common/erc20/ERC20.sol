@@ -7,7 +7,6 @@ pragma solidity ^0.8.0;
 import "../interfaces/IERC165.sol";
 import "../interfaces/IERC20.sol";
 import "../interfaces/IERC20Metadata.sol";
-import "../interfaces/IERC20Mintable.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -34,7 +33,7 @@ import "../interfaces/IERC20Mintable.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
+contract ERC20 is IERC165, IERC20, IERC20Metadata {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -56,13 +55,6 @@ contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
-    }
-
-    /**
-     * @dev Mints tokens. See {ERC20-_mint}.
-     */
-    function mint(address recipient, uint256 value) public virtual override {
-        _mint(recipient, value);
     }
 
     /**
@@ -226,7 +218,6 @@ contract ERC20 is IERC165, IERC20, IERC20Metadata, IERC20Mintable {
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return
             interfaceId == type(IERC20).interfaceId ||
-            interfaceId == type(IERC20Mintable).interfaceId ||
             interfaceId == type(IERC20Metadata).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }

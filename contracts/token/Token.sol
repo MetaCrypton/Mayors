@@ -22,14 +22,14 @@ contract Token is IToken, ERC20, Ownable {
     function batchMint(address[] calldata recipients, uint256 value) external override isOwner {
         uint256 length = recipients.length;
         for (uint256 i = 0; i < length; i++) {
-            super.mint(recipients[i], value);
+            _mint(recipients[i], value);
         }
     }
 
     /**
      * @dev Mints tokens. See {ERC20-_mint}.
      */
-    function mint(address recipient, uint256 value) public override(ERC20, IERC20Mintable) isOwner {
-        super.mint(recipient, value);
+    function mint(address recipient, uint256 value) public override isOwner {
+        _mint(recipient, value);
     }
 }

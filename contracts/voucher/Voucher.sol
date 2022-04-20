@@ -19,32 +19,14 @@ contract Voucher is IVoucher, ERC20, Ownable {
     /**
      * @dev Mints tokens. See {ERC20-_mint}.
      */
-    function mint(address recipient, uint256 value) public override(ERC20, IERC20Mintable) isOwner {
-        super.mint(recipient, value);
+    function mint(address recipient, uint256 value) public override isOwner {
+        _mint(recipient, value);
     }
 
-    // /**
-    //  * @dev Destroys `amount` tokens from the caller.
-    //  *
-    //  * See {ERC20-_burn}.
-    //  */
-    // function burn(uint256 amount) public virtual {
-    //     _burn(_msgSender(), amount);
-    // }
-
-    // /**
-    //  * @dev Destroys `amount` tokens from `account`, deducting from the caller's
-    //  * allowance.
-    //  *
-    //  * See {ERC20-_burn} and {ERC20-allowance}.
-    //  *
-    //  * Requirements:
-    //  *
-    //  * - the caller must have allowance for ``accounts``'s tokens of at least
-    //  * `amount`.
-    //  */
-    // function burnFrom(address account, uint256 amount) public virtual {
-    //     _spendAllowance(account, _msgSender(), amount);
-    //     _burn(account, amount);
-    // }
+    /**
+     * @dev Burns tokens. See {ERC20-_mint}.
+     */
+    function burn(address recipient, uint256 value) public override isOwner {
+        _burn(recipient, value);
+    }
 }

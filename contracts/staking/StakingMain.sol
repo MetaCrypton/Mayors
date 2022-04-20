@@ -11,6 +11,7 @@ import "./common/StakingStorage.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC20.sol";
 import "../voucher/interfaces/IVoucher.sol";
+
 // import "hardhat/console.sol";
 
 contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
@@ -42,7 +43,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
     }
 
-    function unstakeVotes() external override {
+    function unstakeVotes() external override isOwner {
         uint256 length = _stakes[msg.sender].length;
         uint256 totalAmount = 0;
         uint256 votesNumber = 0;
