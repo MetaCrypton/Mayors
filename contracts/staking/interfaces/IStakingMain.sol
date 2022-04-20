@@ -7,9 +7,9 @@ import "../common/StakingStructs.sol";
 interface IStakingMain {
     function stakeVotes(uint256 votesNumber) external;
 
-    function unstakeVotes() external;
+    function unstakeVotes(address staker) external;
 
-    function withdrawVouchers(address recipient) external;
+    function withdrawVouchers(address staker) external;
 
     function setThreshold(uint256 threshold) external;
 

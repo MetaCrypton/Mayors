@@ -43,36 +43,38 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
     }
 
-    function unstakeVotes() external override isOwner {
-        Stake[] storage stakes = _stakes[msg.sender];
+    function unstakeVotes(address staker) external override isOwner {
+        Stake[] storage stakes = _stakes[staker];
         uint256 vouchersNumber = 0;
         uint256 votesNumber = 0;
-        for (uint256 i = 0; i < stakes.length; i++) {
-            vouchersNumber += _calculateVouchers(stakes[i]);
-            votesNumber += stakes[i].amount;
+        while (stakes.length > 0) {
+            Stake memory stake = stakes[stakes.length - 1];
+            vouchersNumber += _calculateVouchers(stake);
+            votesNumber += stake.amount;
 
             // free storage
-            delete stakes[i];
+            stakes.pop();
         }
 
-        delete _stakes[msg.sender];
+        delete _stakes[staker];
 
-        IERC20(_config.voteAddress).transferFrom(address(this), msg.sender, votesNumber);
-        IVoucher(_config.voucherAddress).mint(msg.sender, vouchersNumber);
+        if (IERC20(_config.voteAddress).balanceOf(address(this)) < votesNumber) revert StakingErrors.NotEnoughVotes();
+
+        IERC20(_config.voteAddress).transferFrom(address(this), staker, votesNumber);
+        IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
     }
 
-    function withdrawVouchers(address recipient) external override isOwner {
-        uint256 length = _stakes[recipient].length;
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < length; i++) {
-            Stake storage stake = _stakes[recipient][i];
-            totalAmount += _calculateVouchers(stake);
+    function withdrawVouchers(address staker) external override isOwner {
+        Stake[] storage stakes = _stakes[staker];
+        uint256 vouchersNumber = 0;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            vouchersNumber += _calculateVouchers(stakes[i]);
 
             // reset staking time
-            stake.startDate = block.timestamp;
+            stakes[i].startDate = block.timestamp;
         }
 
-        IVoucher(_config.voucherAddress).mint(recipient, totalAmount);
+        IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
     }
 
     function setThreshold(uint256 threshold) external override isOwner {
@@ -84,27 +86,27 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     }
 
     function getVotesAmount() external view override returns (uint256) {
-        uint256 length = _stakes[msg.sender].length;
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < length; i++) {
-            Stake memory stake = _stakes[msg.sender][i];
-            totalAmount += stake.amount;
+        Stake[] memory stakes = _stakes[msg.sender];
+        uint256 voteNumber = 0;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            voteNumber += stakes[i].amount;
         }
-        return totalAmount;
+        return voteNumber;
     }
 
     function getVouchersAmount() external view override returns (uint256) {
-        uint256 length = _stakes[msg.sender].length;
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < length; i++) {
-            Stake memory stake = _stakes[msg.sender][i];
-            totalAmount += _calculateVouchers(stake);
+        Stake[] memory stakes = _stakes[msg.sender];
+        uint256 vouchersNumber = 0;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            vouchersNumber += _calculateVouchers(stakes[i]);
         }
-        return totalAmount;
+        return vouchersNumber;
     }
 
     function _calculateVouchers(Stake memory stake) private view returns (uint256) {
+        if (stake.startDate > block.timestamp) revert StakingErrors.StakeDateBeforeNow();
         uint256 delta = block.timestamp - stake.startDate;
+        // TODO: float
         return ((stake.amount / 500) * delta) / (1 days);
     }
 }
