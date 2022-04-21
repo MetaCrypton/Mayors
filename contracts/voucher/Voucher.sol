@@ -3,30 +3,20 @@
 
 pragma solidity ^0.8.0;
 
+import "./VoucherConfiguration.sol";
+import "./VoucherERC20.sol";
 import "./interfaces/IVoucher.sol";
 import "../common/erc20/ERC20.sol";
 import "../common/ownership/Ownable.sol";
 
-contract Voucher is IVoucher, ERC20, Ownable {
+contract Voucher is VoucherERC20, VoucherConfiguration {
     constructor(
         string memory name_,
         string memory symbol_,
+        VoucherConfig memory config,
         address owner
-    ) ERC20(name_, symbol_) {
+    ) VoucherERC20(name_, symbol_) {
+        _config = config;
         _owner = owner;
-    }
-
-    /**
-     * @dev Mints tokens. See {ERC20-_mint}.
-     */
-    function mint(address recipient, uint256 value) public override isOwner {
-        _mint(recipient, value);
-    }
-
-    /**
-     * @dev Burns tokens. See {ERC20-_mint}.
-     */
-    function burn(address recipient, uint256 value) public override isOwner {
-        _burn(recipient, value);
     }
 }

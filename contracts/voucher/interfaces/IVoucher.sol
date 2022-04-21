@@ -2,10 +2,8 @@
 // Copyright © 2022 Artem Belozerov. All rights reserved.
 pragma solidity ^0.8.0;
 
-import "../../common/interfaces/IERC20.sol";
-import "../../common/interfaces/IERC20Burnable.sol";
-import "../../common/interfaces/IERC20Metadata.sol";
-import "../../common/interfaces/IERC20Mintable.sol";
-import "../../common/interfaces/IERC165.sol";
+import "../interfaces/IVoucherConfiguration.sol";
+import "../interfaces/IVoucherERC20.sol";
+import "../interfaces/IVoucherEvents.sol";
 
-interface IVoucher is IERC165, IERC20, IERC20Metadata, IERC20Mintable, IERC20Burnable {}
+interface IVoucher is IVoucherConfiguration, IVoucherERC20, IVoucherEvents {}

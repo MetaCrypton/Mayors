@@ -7,7 +7,7 @@ import "../common/StakingStructs.sol";
 interface IStakingMain {
     function stakeVotes(uint256 votesNumber) external;
 
-    function unstakeVotes(address staker) external;
+    function unstakeVotes() external;
 
     function withdrawVouchers(address staker) external;
 

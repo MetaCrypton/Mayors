@@ -21,9 +21,9 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
         // the first stake must be more then the threshold
         Stake[] storage stakes = _stakes[msg.sender];
-        if (stakes.length == 0 && votesNumber != _votesThreshold) revert StakingErrors.NotEnoughVotesForStake();
+        if (stakes.length == 0 && votesNumber < _votesThreshold) revert StakingErrors.NotEnoughVotesForStake();
 
-        // check deplay between stakes
+        // check delay between stakes
         if (stakes.length != 0) {
             Stake memory lastStake = stakes[stakes.length - 1];
             if (lastStake.startDate > block.timestamp) revert StakingErrors.StakeDateBeforeNow();
@@ -33,7 +33,8 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         }
 
         // check user balance
-        if (IERC20(_config.voteAddress).balanceOf(msg.sender) < votesNumber) revert StakingErrors.NotEnoughVotes();
+        uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(msg.sender);
+        if (votesBalance < votesNumber) revert StakingErrors.NotEnoughVotes();
 
         // append new stake
         Stake memory stake = Stake({ startDate: block.timestamp, amount: votesNumber });
@@ -41,12 +42,13 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
         // TODO: change IERC20 to IVote
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
+        emit VotesStaked(stake.startDate, stake.amount);
     }
 
-    function unstakeVotes(address staker) external override isOwner {
-        Stake[] storage stakes = _stakes[staker];
-        uint256 vouchersNumber = 0;
-        uint256 votesNumber = 0;
+    function unstakeVotes() external override {
+        Stake[] storage stakes = _stakes[msg.sender];
+        uint256 vouchersNumber;
+        uint256 votesNumber;
         while (stakes.length > 0) {
             Stake memory stake = stakes[stakes.length - 1];
             vouchersNumber += _calculateVouchers(stake);
@@ -54,19 +56,25 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
             // free storage
             stakes.pop();
+            emit StakeRemoved(msg.sender, stake.startDate, stake.amount);
         }
 
-        delete _stakes[staker];
+        delete _stakes[msg.sender];
 
-        if (IERC20(_config.voteAddress).balanceOf(address(this)) < votesNumber) revert StakingErrors.NotEnoughVotes();
+        // ???
+        uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(address(this));
+        if (votesBalance < votesNumber) revert StakingErrors.NotEnoughVotes();
 
-        IERC20(_config.voteAddress).transferFrom(address(this), staker, votesNumber);
-        IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
+        IERC20(_config.voteAddress).transfer(msg.sender, votesNumber);
+        emit VotesUnstaked(msg.sender, votesNumber);
+
+        IVoucher(_config.voucherAddress).mint(msg.sender, vouchersNumber);
+        emit VouchersMinted(msg.sender, vouchersNumber);
     }
 
     function withdrawVouchers(address staker) external override isOwner {
         Stake[] storage stakes = _stakes[staker];
-        uint256 vouchersNumber = 0;
+        uint256 vouchersNumber;
         for (uint256 i = 0; i < stakes.length; i++) {
             vouchersNumber += _calculateVouchers(stakes[i]);
 
@@ -75,6 +83,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         }
 
         IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
+        emit VouchersMinted(staker, vouchersNumber);
     }
 
     function setThreshold(uint256 threshold) external override isOwner {
@@ -87,7 +96,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
     function getVotesAmount() external view override returns (uint256) {
         Stake[] memory stakes = _stakes[msg.sender];
-        uint256 voteNumber = 0;
+        uint256 voteNumber;
         for (uint256 i = 0; i < stakes.length; i++) {
             voteNumber += stakes[i].amount;
         }
@@ -96,7 +105,7 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
     function getVouchersAmount() external view override returns (uint256) {
         Stake[] memory stakes = _stakes[msg.sender];
-        uint256 vouchersNumber = 0;
+        uint256 vouchersNumber;
         for (uint256 i = 0; i < stakes.length; i++) {
             vouchersNumber += _calculateVouchers(stakes[i]);
         }
@@ -105,8 +114,15 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
 
     function _calculateVouchers(Stake memory stake) private view returns (uint256) {
         if (stake.startDate > block.timestamp) revert StakingErrors.StakeDateBeforeNow();
-        uint256 delta = block.timestamp - stake.startDate;
-        // TODO: float
-        return ((stake.amount / 500) * delta) / (1 days);
+
+        // rounding to whole hours: 10:45 -> 10:00
+        uint256 delta = ((block.timestamp - stake.startDate) / 1 hours) * 1 hours;
+        uint256 voucherDecimal = 2;
+        uint256 precision = 3;
+
+        uint256 votesRatio = (stake.amount * 10**(voucherDecimal + precision)) / StakingConstants.VOTES_PER_VOUCHER;
+        uint256 timesRatio = (delta * 10**(voucherDecimal + precision)) / StakingConstants.SECONDS_PER_VOUCHER;
+        uint256 result = (votesRatio * timesRatio) / 10**(voucherDecimal + precision * 2);
+        return result;
     }
 }

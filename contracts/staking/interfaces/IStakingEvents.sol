@@ -6,4 +6,8 @@ import "../common/StakingStructs.sol";
 
 interface IStakingEvents {
     event ConfigUpdated();
+    event VotesStaked(uint256 startDate, uint256 amount);
+    event VotesUnstaked(address staker, uint256 amount);
+    event VouchersMinted(address staker, uint256 amount);
+    event StakeRemoved(address staker, uint256 startDate, uint256 amount);
 }
