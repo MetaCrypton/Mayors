@@ -471,19 +471,52 @@ describe("Integration", function() {
         assert.equal(await staking.connect(bob).getVouchersAmount(), 291);
     });
 
-    it("Unstake votes", async function() {
-        // before unstake
+    it("Withdraw vouchers", async function() {
+        // check balances
         assert.equal(await voteToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 500);
         assert.equal(await staking.connect(alice).getVotesAmount(), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(), 208);
+        assert.equal(await staking.connect(bob).getVouchersAmount(), 291);
+
+        // withdraw
+        await staking.connect(admin).withdrawVouchers(alice.address);
+
+        // check balances after withdraw
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await voucherToken.balanceOf(alice.address), 708);
+        assert.equal(await staking.connect(alice).getVotesAmount(), 600);
+        assert.equal(await staking.connect(alice).getVouchersAmount(), 0);
+
+        // increase time
+        const fiftyHours = 50 * 60 * 60 + 45 * 60;
+        await ethers.provider.send('evm_increaseTime', [fiftyHours]);
+        await ethers.provider.send('evm_mine');
+
+        // check accumulated vouchers
+        assert.equal(await staking.connect(alice).getVouchersAmount(), 249);
+
+        // bob without any changes
+        assert.equal(await voteToken.balanceOf(bob.address), 1300);
+        assert.equal(await voucherToken.balanceOf(bob.address), 0);
+        assert.equal(await staking.connect(bob).getVotesAmount(), 700);
+        // (700 staked votes / 500) * (101 hours / 24 hours)
+        assert.equal(await staking.connect(bob).getVouchersAmount(), 589);
+    });
+
+    it("Unstake votes", async function() {
+        // before unstake
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await voucherToken.balanceOf(alice.address), 708);
+        assert.equal(await staking.connect(alice).getVotesAmount(), 600);
+        assert.equal(await staking.connect(alice).getVouchersAmount(), 249);
 
         // unstake
         await staking.connect(alice).unstakeVotes();
 
         // after unstake
         assert.equal(await voteToken.balanceOf(alice.address), 1000);
-        assert.equal(await voucherToken.balanceOf(alice.address), 708);
+        assert.equal(await voucherToken.balanceOf(alice.address), 957);
         assert.equal(await staking.connect(alice).getVotesAmount(), 0);
         assert.equal(await staking.connect(alice).getVouchersAmount(), 0);
 
@@ -491,6 +524,6 @@ describe("Integration", function() {
         assert.equal(await voteToken.balanceOf(bob.address), 1300);
         assert.equal(await voucherToken.balanceOf(bob.address), 0);
         assert.equal(await staking.connect(bob).getVotesAmount(), 700);
-        assert.equal(await staking.connect(bob).getVouchersAmount(), 291);
+        assert.equal(await staking.connect(bob).getVouchersAmount(), 589);
     });
 });

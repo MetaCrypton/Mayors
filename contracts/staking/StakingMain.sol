@@ -72,20 +72,6 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         emit VouchersMinted(msg.sender, vouchersNumber);
     }
 
-    function withdrawVouchers(address staker) external override isOwner {
-        Stake[] storage stakes = _stakes[staker];
-        uint256 vouchersNumber;
-        for (uint256 i = 0; i < stakes.length; i++) {
-            vouchersNumber += _calculateVouchers(stakes[i]);
-
-            // reset staking time
-            stakes[i].startDate = block.timestamp;
-        }
-
-        IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
-        emit VouchersMinted(staker, vouchersNumber);
-    }
-
     function setThreshold(uint256 threshold) external override isOwner {
         _votesThreshold = threshold;
     }
@@ -110,6 +96,26 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
             vouchersNumber += _calculateVouchers(stakes[i]);
         }
         return vouchersNumber;
+    }
+
+    // function withdrawVouchersForAll() external override isOwner {
+    //     for (uint256 i = 0; i < _stakers.length; i++) {
+    //         withdrawVouchers(_stakes[_stakers[i]]);
+    //     }
+    // }
+
+    function withdrawVouchers(address staker) public override isOwner {
+        Stake[] storage stakes = _stakes[staker];
+        uint256 vouchersNumber;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            vouchersNumber += _calculateVouchers(stakes[i]);
+
+            // reset staking time
+            stakes[i].startDate = block.timestamp;
+        }
+
+        IVoucher(_config.voucherAddress).mint(staker, vouchersNumber);
+        emit VouchersMinted(staker, vouchersNumber);
     }
 
     function _calculateVouchers(Stake memory stake) private view returns (uint256) {
