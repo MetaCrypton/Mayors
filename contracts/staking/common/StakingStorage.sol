@@ -10,5 +10,6 @@ contract StakingStorage is OwnableStorage {
 
     uint256 internal _votesThreshold;
 
+    address[] internal _stakers;
     mapping(address => Stake[]) internal _stakes;
 }

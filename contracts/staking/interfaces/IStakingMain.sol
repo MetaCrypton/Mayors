@@ -9,6 +9,8 @@ interface IStakingMain {
 
     function unstakeVotes() external;
 
+    function withdrawVouchersForAll() external;
+
     function withdrawVouchers(address staker) external;
 
     function setThreshold(uint256 threshold) external;

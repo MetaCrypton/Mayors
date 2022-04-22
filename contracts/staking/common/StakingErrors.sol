@@ -9,4 +9,5 @@ library StakingErrors {
     error NotEnoughVotesForStake();
     error SameConfig();
     error StakeDateBeforeNow();
+    error StakerNotFound();
 }

@@ -8,8 +8,6 @@ import "./common/VoucherStorage.sol";
 import "../common/erc20/ERC20.sol";
 import "../common/ownership/Ownable.sol";
 
-import "hardhat/console.sol";
-
 contract VoucherERC20 is IVoucherERC20, ERC20, Ownable, VoucherStorage, VoucherModifiers {
     constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
 
