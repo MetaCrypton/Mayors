@@ -11,6 +11,7 @@ import "./common/StakingStorage.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC20.sol";
 import "../voucher/interfaces/IVoucher.sol";
+import "hardhat/console.sol";
 
 contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     function stakeVotes(uint256 votesNumber) external override {
@@ -38,7 +39,6 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         // append a new stake
         _addStake(msg.sender, block.timestamp, votesNumber);
 
-        // TODO: change IERC20 to IVote
         emit VotesStaked(block.timestamp, votesNumber);
         IERC20(_config.voteAddress).transferFrom(msg.sender, address(this), votesNumber);
     }
@@ -59,7 +59,6 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
             _removeStake(msg.sender, i);
         }
 
-        // ???
         uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(address(this));
         if (votesBalance < votesNumber) revert StakingErrors.NotEnoughVotes();
 
@@ -160,7 +159,6 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         Stake memory stake = stakes[index];
         stakes[index] = stakes[stakes.length - 1];
         stakes.pop();
-        // TODO: check
         emit StakeRemoved(msg.sender, stake.startDate, stake.amount);
 
         // remove a staker
