@@ -62,12 +62,10 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(address(this));
         if (votesBalance < votesNumber) revert StakingErrors.NotEnoughVotes();
 
-        emit VotesUnstaked(msg.sender, votesNumber);
+        emit VotesUnstaked(msg.sender, votesNumber, vouchersNumber);
+
         IERC20(_config.voteAddress).transfer(msg.sender, votesNumber);
-
         if (vouchersNumber == 0) return;
-
-        emit VouchersMinted(msg.sender, vouchersNumber);
         IVoucher(_config.voucherAddress).mint(msg.sender, vouchersNumber);
     }
 
