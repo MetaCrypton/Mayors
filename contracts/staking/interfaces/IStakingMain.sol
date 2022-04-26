@@ -7,17 +7,23 @@ import "../common/StakingStructs.sol";
 interface IStakingMain {
     function stakeVotes(uint256 votesNumber) external;
 
-    function unstakeVotes() external;
+    function unstakeVotes(uint256 startIndex, uint256 number) external;
 
-    function withdrawVouchersForAll() external;
-
-    function withdrawVouchers(address staker) external;
+    function withdrawVouchers(
+        address staker,
+        uint256 startIndex,
+        uint256 number
+    ) external;
 
     function setThreshold(uint256 threshold) external;
 
     function getThreshold() external view returns (uint256);
 
-    function getVotesAmount() external view returns (uint256 totalAmount);
+    function getStakesNumber(address staker) external view returns (uint256);
 
-    function getVouchersAmount() external view returns (uint256 totalAmount);
+    function getStakersNumber() external view returns (uint256);
+
+    function getVotesAmount(uint256 startIndex, uint256 number) external view returns (uint256 totalAmount);
+
+    function getVouchersAmount(uint256 startIndex, uint256 number) external view returns (uint256 totalAmount);
 }
