@@ -11,4 +11,4 @@ import "../../common/interfaces/IERC721Metadata.sol";
 import "../../common/interfaces/IERC721Mintable.sol";
 import "../../common/interfaces/IERC165.sol";
 
-interface IThriftbox is IThriftboxConfiguration, IThriftboxLifecycle,  IThriftboxEvents {}
+interface IThriftbox is IThriftboxConfiguration, IThriftboxLifecycle, IThriftboxEvents {}

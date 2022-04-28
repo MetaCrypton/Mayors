@@ -411,11 +411,11 @@ describe("Integration", function() {
         assert.equal(await votesToken.balanceOf(thriftbox.address), 0);
 
         // deposit Votes to players, twice
-        await thriftbox.connect(admin).depositVotesList([
+        await thriftbox.connect(admin).depositList([
             {player: alice.address, amount: 200},
             {player: bob.address, amount: 300},
         ]);
-        await thriftbox.connect(admin).depositVotesList([
+        await thriftbox.connect(admin).depositList([
             {player: alice.address, amount: 300},
             {player: bob.address, amount: 0},
         ]);
@@ -424,13 +424,11 @@ describe("Integration", function() {
         assert.equal(await votesToken.balanceOf(admin.address), 200);
         assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
 
-        deposit = await thriftbox.getVotesDeposit(alice.address);
-        assert.equal(deposit[0], 0);
-        assert.equal(deposit[1], 500);
+        assert.equal(await thriftbox.getWithdrawalDate(alice.address), 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 500);
 
-        deposit = await thriftbox.getVotesDeposit(bob.address);
-        assert.equal(deposit[0], 0);
-        assert.equal(deposit[1], 300);
+        assert.equal(await thriftbox.getWithdrawalDate(bob.address), 0);
+        assert.equal(await thriftbox.balanceOf(bob.address), 300);
     });
 
     it("Withdraw votes from thriftbox", async function() {
@@ -443,19 +441,18 @@ describe("Integration", function() {
         assert.equal(await votesToken.balanceOf(alice.address), 0);
 
         // withdraw and check balances
-        await thriftbox.connect(alice).withdrawVotes();
+        await thriftbox.connect(alice).withdraw();
         assert.equal(await votesToken.balanceOf(admin.address), 200);
         assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
         assert.equal(await votesToken.balanceOf(alice.address), 500);
 
         // check deposit
-        deposit = await thriftbox.getVotesDeposit(alice.address);
-        assert.notEqual(deposit[0], 0);
-        assert.equal(deposit[1], 0);
-        withdrawalDate1 = deposit[0];
+        withdrawalDate1 = await thriftbox.getWithdrawalDate(alice.address);
+        assert.notEqual(withdrawalDate1, 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 0);
 
         // deposit some votes
-        await thriftbox.connect(admin).depositVotesList([
+        await thriftbox.connect(admin).depositList([
             {player: alice.address, amount: 100},
         ]);
 
@@ -465,7 +462,7 @@ describe("Integration", function() {
         await ethers.provider.send('evm_mine');
 
         // try to withdraw after 2 hours
-        await expect(thriftbox.connect(alice).withdrawVotes()).to.be.revertedWith('TooFrequentWithdrawals()');
+        await expect(thriftbox.connect(alice).withdraw()).to.be.revertedWith('TooFrequentWithdrawals()');
         assert.equal(await votesToken.balanceOf(admin.address), 100);
         assert.equal(await votesToken.balanceOf(thriftbox.address), 400);
         assert.equal(await votesToken.balanceOf(alice.address), 500);
@@ -476,16 +473,15 @@ describe("Integration", function() {
         await ethers.provider.send('evm_mine');
 
         // try to withdraw after 7 days more
-        await thriftbox.connect(alice).withdrawVotes();
+        await thriftbox.connect(alice).withdraw();
         assert.equal(await votesToken.balanceOf(admin.address), 100);
         assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
         assert.equal(await votesToken.balanceOf(alice.address), 600);
 
         // check deposit
-        deposit = await thriftbox.getVotesDeposit(alice.address);
-        assert.notEqual(deposit[0], 0);
-        assert.equal(deposit[1], 0);
-        withdrawalDate2 = deposit[0];
+        withdrawalDate2 = await thriftbox.getWithdrawalDate(alice.address);
+        assert.notEqual(withdrawalDate2, 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 0);
 
         assert.equal(withdrawalDate2 - withdrawalDate1 >= twoHours + sevenDays, true);
     });

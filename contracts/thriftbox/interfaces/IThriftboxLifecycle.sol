@@ -5,9 +5,11 @@ pragma solidity ^0.8.0;
 import "../common/ThriftboxStructs.sol";
 
 interface IThriftboxLifecycle {
-    function withdrawVotes() external;
+    function withdraw() external;
 
-    function depositVotesList(Earning[] calldata earnings) external;
+    function depositList(Earning[] calldata earnings) external;
 
-    function getVotesDeposit(address player) external view returns (VotesDeposit memory);
+    function balanceOf(address player) external view returns (uint256 votesAmount);
+
+    function getWithdrawalDate(address player) external view returns (uint256 withdrawalDate);
 }

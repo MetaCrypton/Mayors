@@ -8,5 +8,6 @@ import "../../common/ownership/OwnableStorage.sol";
 contract ThriftboxStorage is OwnableStorage {
     ThriftboxConfig internal _config;
 
-    mapping(address => VotesDeposit) internal _deposits;
+    mapping(address => uint256) internal _balances;
+    mapping(address => uint256) internal _withrawalDates;
 }
