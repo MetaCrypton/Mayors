@@ -10,8 +10,3 @@ struct Earning {
     address player;
     uint256 amount;
 }
-
-struct VotesDeposit {
-    uint256 withdrawalDate;
-    uint256 amount;
-}
