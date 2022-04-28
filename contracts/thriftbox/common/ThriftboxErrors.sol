@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 library ThriftboxErrors {
     error SameConfig();
-    error NoPermission();
     error NotEnoughVotes();
     error TooFrequentWithdrawals();
 }

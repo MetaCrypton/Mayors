@@ -7,10 +7,7 @@ import "./ThriftboxConfiguration.sol";
 import "./ThriftboxLifecycle.sol";
 
 contract Thriftbox is ThriftboxLifecycle, ThriftboxConfiguration {
-    constructor(
-        ThriftboxConfig memory config,
-        address owner
-    ) {
+    constructor(ThriftboxConfig memory config, address owner) {
         _config = config;
         _owner = owner;
     }

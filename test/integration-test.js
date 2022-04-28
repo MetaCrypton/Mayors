@@ -78,6 +78,8 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
+    let votesToken;
+    let thriftbox;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -159,6 +161,17 @@ describe("Integration", function() {
             ],
             admin.address
         );
+
+        votesToken = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
+        thriftbox = await deploy(
+            "Thriftbox",
+            admin,
+            [
+                votesToken.address,
+            ],
+            admin.address,
+        );
+
 
         await lootbox.connect(admin).updateConfig(
             [
@@ -386,5 +399,94 @@ describe("Integration", function() {
         let tx = await marketplace.connect(admin).sendLootboxes(SEASON_ID_2, LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
 
         assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
+    });
+
+    it("Deposit votes to thriftbox", async function() {
+        let deposit;
+
+        // mint votes for admin
+        await votesToken.connect(admin).mint(admin.address, 1000);
+        await votesToken.connect(admin).approve(thriftbox.address, 1000);
+        assert.equal(await votesToken.balanceOf(admin.address), 1000);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 0);
+
+        // deposit Votes to players, twice
+        await thriftbox.connect(admin).depositVotesList([
+            {player: alice.address, amount: 200},
+            {player: bob.address, amount: 300},
+        ]);
+        await thriftbox.connect(admin).depositVotesList([
+            {player: alice.address, amount: 300},
+            {player: bob.address, amount: 0},
+        ]);
+
+        // check balances
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
+
+        deposit = await thriftbox.getVotesDeposit(alice.address);
+        assert.equal(deposit[0], 0);
+        assert.equal(deposit[1], 500);
+
+        deposit = await thriftbox.getVotesDeposit(bob.address);
+        assert.equal(deposit[0], 0);
+        assert.equal(deposit[1], 300);
+    });
+
+    it("Withdraw votes from thriftbox", async function() {
+        let deposit;
+        let withdrawalDate1;
+        let withdrawalDate2;
+
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
+        assert.equal(await votesToken.balanceOf(alice.address), 0);
+
+        // withdraw and check balances
+        await thriftbox.connect(alice).withdrawVotes();
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+
+        // check deposit
+        deposit = await thriftbox.getVotesDeposit(alice.address);
+        assert.notEqual(deposit[0], 0);
+        assert.equal(deposit[1], 0);
+        withdrawalDate1 = deposit[0];
+
+        // deposit some votes
+        await thriftbox.connect(admin).depositVotesList([
+            {player: alice.address, amount: 100},
+        ]);
+
+        // increase time
+        const twoHours = 2 * 60 * 60;
+        await ethers.provider.send('evm_increaseTime', [twoHours]);
+        await ethers.provider.send('evm_mine');
+
+        // try to withdraw after 2 hours
+        await expect(thriftbox.connect(alice).withdrawVotes()).to.be.revertedWith('TooFrequentWithdrawals()');
+        assert.equal(await votesToken.balanceOf(admin.address), 100);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 400);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+
+        // increase time
+        const sevenDays = 7 * 24 * 60 * 60;
+        await ethers.provider.send('evm_increaseTime', [sevenDays]);
+        await ethers.provider.send('evm_mine');
+
+        // try to withdraw after 7 days more
+        await thriftbox.connect(alice).withdrawVotes();
+        assert.equal(await votesToken.balanceOf(admin.address), 100);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await votesToken.balanceOf(alice.address), 600);
+
+        // check deposit
+        deposit = await thriftbox.getVotesDeposit(alice.address);
+        assert.notEqual(deposit[0], 0);
+        assert.equal(deposit[1], 0);
+        withdrawalDate2 = deposit[0];
+
+        assert.equal(withdrawalDate2 - withdrawalDate1 >= twoHours + sevenDays, true);
     });
 });

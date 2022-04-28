@@ -4,12 +4,13 @@
 pragma solidity ^0.8.0;
 
 import "../common/erc20/ERC20.sol";
+import "../common/ownership/Ownable.sol";
+import "./common/ThriftboxErrors.sol";
+import "./common/ThriftboxStorage.sol";
 import "./interfaces/IThriftboxEvents.sol";
 import "./interfaces/IThriftboxLifecycle.sol";
-import "./ThriftboxModifiers.sol";
 
-contract ThriftboxLifecycle is IThirftboxLifecycle, IThriftboxEvents, ThriftboxModifiers {
-
+contract ThriftboxLifecycle is IThriftboxLifecycle, IThriftboxEvents, Ownable, ThriftboxStorage {
     function withdrawVotes() external override {
         VotesDeposit storage deposit = _deposits[msg.sender];
 
@@ -17,7 +18,7 @@ contract ThriftboxLifecycle is IThirftboxLifecycle, IThriftboxEvents, ThriftboxM
         uint256 amount = deposit.amount;
         if (IERC20(_config.votesAddress).balanceOf(address(this)) < amount) revert ThriftboxErrors.NotEnoughVotes();
 
-        // check interval in time between last withdrawal and now
+        // check interval in time between last and current withdrawals
         // solhint-disable not-rely-on-time
         uint256 withdrawalDate = deposit.withdrawalDate;
         if (withdrawalDate != 0) {
@@ -27,29 +28,30 @@ contract ThriftboxLifecycle is IThirftboxLifecycle, IThriftboxEvents, ThriftboxM
 
         deposit.withdrawalDate = block.timestamp;
         deposit.amount = 0;
-        emit VotesWithdrawn(msg.sender, withdrawalDate, amount);
+        emit VotesWithdrawnByPlayer(msg.sender, withdrawalDate, amount);
         IERC20(_config.votesAddress).transfer(msg.sender, amount);
         // solhint-enable not-rely-on-time
     }
 
-    function depositVotesList(Earning[] calldata earnings) external override {
+    function depositVotesList(Earning[] calldata earnings) external override isOwner {
+        uint256 totalAmount;
         uint256 earningsCount = earnings.length;
         for (uint256 i = 0; i < earningsCount; i++) {
-            depositVotes(earnings[i].player, earnings[i].amount);
+            _depositVotes(earnings[i].player, earnings[i].amount);
+            totalAmount += earnings[i].amount;
         }
+
+        emit VotesDepositedTotal(totalAmount);
+        IERC20(_config.votesAddress).transferFrom(msg.sender, address(this), totalAmount);
     }
 
-    function depositVotes(address player, uint256 amount) public override isVotingOrOwner {
-        VotesDeposit storage deposit = _deposits[msg.sender];
-
-        // TODO: check overflow
-        deposit.amount += amount;
-
-        emit VotesDeposited(player, amount);
-        IERC20(_config.votesAddress).transferFrom(msg.sender, address(this), amount);
-    }
-
-    function getVotesDeposit(address player) public view override returns (VotesDeposit memory) {
+    function getVotesDeposit(address player) external view override returns (VotesDeposit memory) {
         return _deposits[player];
+    }
+
+    function _depositVotes(address player, uint256 amount) internal isOwner {
+        VotesDeposit storage deposit = _deposits[player];
+        deposit.amount += amount;
+        emit VotesDepositedByPlayer(player, amount);
     }
 }

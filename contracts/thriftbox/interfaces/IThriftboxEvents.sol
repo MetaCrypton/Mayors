@@ -6,6 +6,7 @@ import "../common/ThriftboxStructs.sol";
 
 interface IThriftboxEvents {
     event ConfigUpdated();
-    event VotesWithdrawn(address player, uint256 lastWithdraw, uint256 amount);
-    event VotesDeposited(address player, uint256 amount);
+    event VotesWithdrawnByPlayer(address player, uint256 lastWithdraw, uint256 amount);
+    event VotesDepositedByPlayer(address player, uint256 amount);
+    event VotesDepositedTotal(uint256 totalAmount);
 }
