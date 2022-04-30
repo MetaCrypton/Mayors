@@ -20,7 +20,7 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         for (uint256 i = 0; i < numberToMint; i++) {
             uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
             tokenIds[i] = tokenId;
-            _seasonURI[tokenId] = seasonURI;
+            _tokenURI[tokenId] = TokenURI(seasonURI, i);
         }
 
         return tokenIds;

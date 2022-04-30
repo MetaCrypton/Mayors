@@ -29,6 +29,11 @@ struct VoteDiscounts {
     uint8[3] legendary;
 }
 
+struct TokenURI {
+    string seasonUri;
+    uint256 index;
+}
+
 enum Rarity {
     Common,
     Rare,
