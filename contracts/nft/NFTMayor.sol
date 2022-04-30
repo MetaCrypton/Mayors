@@ -82,8 +82,8 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     }
 
     function _calculateTokenId(uint256 seasonId, uint256 nftStartIndex) internal returns (uint256) {
-        uint256 seasonTokenId = _tokenCounterBySeason[seasonId]++;
-        return nftStartIndex + seasonTokenId;
+        uint256 seasonTokenIndex = _tokenCounterBySeason[seasonId]++;
+        return nftStartIndex + seasonTokenIndex;
     }
 
     function _setRarityAndHashrate(uint256 id, address owner) internal {
