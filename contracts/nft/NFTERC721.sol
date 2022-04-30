@@ -131,7 +131,7 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         string memory baseURI = _baseURI;
-        TokenURI memory path = _tokenURI[tokenId];
+        string memory seasonURI = _seasonURI[tokenId];
         Level level = _levels[tokenId];
 
         return
@@ -139,11 +139,11 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
                 abi.encodePacked(
                     baseURI,
                     "/",
-                    path.seasonUri,
+                    seasonURI,
                     "/",
-                    _uintToASCIIBytes(path.index),
+                    _uintToASCIIBytes(tokenId),
                     "/",
-                    _uintToASCIIBytes(path.index),
+                    _uintToASCIIBytes(tokenId),
                     "_",
                     _uintToASCIIBytes(uint8(level)),
                     ".json"

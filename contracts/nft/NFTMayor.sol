@@ -13,14 +13,16 @@ import "../marketplace/common/MarketplaceStructs.sol";
 contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     function batchMint(
         address owner,
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
+        uint256 nftStartIndex,
         uint256 numberToMint
     ) external override isLootboxOrOwner returns (uint256[] memory tokenIds) {
         tokenIds = new uint256[](numberToMint);
         for (uint256 i = 0; i < numberToMint; i++) {
-            uint256 tokenId = _mintAndSetRarityAndHashrate(owner);
+            uint256 tokenId = _mintAndSetRarityAndHashrate(owner, seasonId, nftStartIndex);
             tokenIds[i] = tokenId;
-            _tokenURI[tokenId] = TokenURI(seasonURI, i);
+            _seasonURI[tokenId] = seasonUri;
         }
 
         return tokenIds;
@@ -68,11 +70,20 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
         return IRarityCalculator(_config.rarityCalculator).getVoteDiscount(level, rarity);
     }
 
-    function _mintAndSetRarityAndHashrate(address owner) internal returns (uint256) {
-        uint256 id = _tokenIdCounter++;
+    function _mintAndSetRarityAndHashrate(
+        address owner,
+        uint256 seasonId,
+        uint256 nftStartIndex
+    ) internal returns (uint256) {
+        uint256 id = _calculateTokenId(seasonId, nftStartIndex);
         _mint(owner, id);
         _setRarityAndHashrate(id, owner);
         return id;
+    }
+
+    function _calculateTokenId(uint256 seasonId, uint256 nftStartIndex) internal returns (uint256) {
+        uint256 seasonTokenId = _tokenCounterBySeason[seasonId]++;
+        return nftStartIndex + seasonTokenId;
     }
 
     function _setRarityAndHashrate(uint256 id, address owner) internal {

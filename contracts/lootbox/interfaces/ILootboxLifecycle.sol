@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 
 interface ILootboxLifecycle {
     function mint(
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
         address owner,
         uint256 unlockTimestamp
     ) external returns (uint256 tokenId);
@@ -13,7 +14,8 @@ interface ILootboxLifecycle {
 
     function batchMint(
         uint256 number,
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
         address owner,
         uint256 unlockTimestamp
     ) external;

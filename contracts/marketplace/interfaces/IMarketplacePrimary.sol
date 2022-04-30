@@ -31,4 +31,6 @@ interface IMarketplacePrimary {
         address account,
         bytes32[] calldata merkleProof
     ) external view returns (bool);
+
+    function getSeason(uint256 seasonId) external view returns (Season memory);
 }

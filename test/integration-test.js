@@ -7,14 +7,11 @@ describe("Integration", function() {
 
     const BASE_URI = "https://baseuri.io";
 
-    const NUMBER_IN_LOOTBOXES = {
-        season1: 3,
-        season2: 3,
-    };
+    const NUMBER_IN_LOOTBOXES = 3;
 
     const SEASON_ID_1 = 0;
     const SEASON_ID_2 = 1;
-    const LOOTBOXES_BATCH = 1497;
+    const LOOTBOXES_BATCH = 1031;
 
     const ALICE_MINT = 100;
     const CHARLIE_MINT = 200;
@@ -56,6 +53,8 @@ describe("Integration", function() {
         lootboxPrice: 100,
         lootboxesPerAddress: 3,
         lootboxesUnlockTimestamp: 0,
+        nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+        nftStartIndex: 0,
         merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
         isPublic: true,
         uri: "season1"
@@ -68,6 +67,8 @@ describe("Integration", function() {
         lootboxPrice: 100,
         lootboxesPerAddress: LOOTBOXES_BATCH,
         lootboxesUnlockTimestamp: 0,
+        nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+        nftStartIndex: NUMBER_IN_LOOTBOXES * season1.lootboxesNumber,
         merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
         isPublic: true,
         uri: "season2"
@@ -165,7 +166,6 @@ describe("Integration", function() {
 
         await lootbox.connect(admin).updateConfig(
             [
-                NUMBER_IN_LOOTBOXES.season1,
                 marketplace.address,
                 nft.address
             ]
@@ -223,13 +223,13 @@ describe("Integration", function() {
     });
 
     it("Validate nft ownership", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES.season1; i++) {
+        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
             assert.equal(await nft.ownerOf(i), charlie.address);
         }
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES.season1; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
@@ -273,7 +273,7 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN1. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES.season1; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -303,7 +303,7 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN2. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES.season1; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -351,19 +351,18 @@ describe("Integration", function() {
     });
 
     it("Validate nft ownership", async function() {
-        for (let i = NUMBER_IN_LOOTBOXES.season1; i < NUMBER_IN_LOOTBOXES.season1 + NUMBER_IN_LOOTBOXES.season2; i++) {
+        for (let i = season2.nftStartIndex; i < season2.nftStartIndex + NUMBER_IN_LOOTBOXES; i++) {
             assert.equal(await nft.ownerOf(i), alice.address);
         }
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = NUMBER_IN_LOOTBOXES.season1; i < NUMBER_IN_LOOTBOXES.season1 + NUMBER_IN_LOOTBOXES.season2; i++) {
+        for (let i = season2.nftStartIndex; i < season2.nftStartIndex + NUMBER_IN_LOOTBOXES; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
 
-            let tokenIndex = i - NUMBER_IN_LOOTBOXES.season1;
-            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+season2.uri+"/"+tokenIndex+"/"+tokenIndex+"_"+0+".json");
+            assert.equal(await nft.tokenURI(i), BASE_URI+"/"+season2.uri+"/"+i+"/"+i+"_"+0+".json");
 
             if (rarity == RARITIES.common) {
                 assert.equal(voteDiscount, 0);
