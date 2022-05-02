@@ -7,7 +7,9 @@ import "../common/NFTStructs.sol";
 interface INFTMayor {
     function batchMint(
         address owner,
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
+        uint256 nftStartIndex,
         uint256 numberToMint
     ) external returns (uint256[] memory tokenIds);
 

@@ -13,6 +13,8 @@ struct Season {
     uint256 lootboxPrice;
     uint256 lootboxesPerAddress;
     uint256 lootboxesUnlockTimestamp;
+    uint256 nftNumberInLootbox;
+    uint256 nftStartIndex;
     bytes32 merkleRoot;
     bool isPublic;
     string uri;
