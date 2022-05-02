@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "./LootboxERC721.sol";
 import "./common/LootboxErrors.sol";
+import "../marketplace/interfaces/IMarketplace.sol";
 
 contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
     modifier isMarketplaceOrOwner() {
@@ -18,29 +19,39 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         // solhint-disable-next-line not-rely-on-time
         if (_unlockTimestamp[tokenId] > block.timestamp) revert LootboxErrors.NotUnlocked();
 
-        tokenIds = _config.nft.batchMint(msg.sender, _seasonURI[tokenId], _config.numberInLootbox);
+        uint256 seasonId = _seasonInfo[tokenId].id;
+        Season memory season = IMarketplace(_config.marketplaceAddress).getSeason(seasonId);
+        tokenIds = _config.nft.batchMint(
+            msg.sender,
+            seasonId,
+            season.uri,
+            season.nftStartIndex,
+            season.nftNumberInLootbox
+        );
 
         _burn(tokenId);
-        delete _seasonURI[tokenId];
+        delete _seasonInfo[tokenId];
 
         return tokenIds;
     }
 
     function mint(
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
         address owner,
         uint256 unlockTimestamp
     ) external override isMarketplaceOrOwner returns (uint256 tokenId) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
-        _seasonURI[id] = seasonURI;
+        _seasonInfo[id] = SeasonInfo(seasonId, seasonUri);
         _unlockTimestamp[id] = unlockTimestamp;
         return id;
     }
 
     function batchMint(
         uint256 number,
-        string calldata seasonURI,
+        uint256 seasonId,
+        string calldata seasonUri,
         address owner,
         uint256 unlockTimestamp
     ) external override isMarketplaceOrOwner {
@@ -49,7 +60,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         for (; number > 0; number--) {
             uint256 id = _tokenIdCounter++;
             _owners[id] = owner;
-            _seasonURI[id] = seasonURI;
+            _seasonInfo[id] = SeasonInfo(seasonId, seasonUri);
             _unlockTimestamp[id] = unlockTimestamp;
 
             emit Transfer(address(0), owner, id);
@@ -61,6 +72,6 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
     }
 
     function getSeasonUriTimestamp(uint256 tokenId) external view override returns (string memory) {
-        return _seasonURI[tokenId];
+        return _seasonInfo[tokenId].uri;
     }
 }

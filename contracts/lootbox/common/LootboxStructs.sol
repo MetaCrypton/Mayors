@@ -5,7 +5,11 @@ pragma solidity ^0.8.0;
 import "../../nft/NFT.sol";
 
 struct LootboxConfig {
-    uint8 numberInLootbox;
     address marketplaceAddress;
     NFT nft;
+}
+
+struct SeasonInfo {
+    uint256 id;
+    string uri;
 }

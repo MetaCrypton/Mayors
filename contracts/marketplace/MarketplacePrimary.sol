@@ -41,7 +41,7 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         _lootboxesBought[seasonId][msg.sender] += number;
         emit LootboxesSentInBatch(seasonId, recipient, address(_config.lootbox), number);
 
-        _config.lootbox.batchMint(number, season.uri, recipient, season.lootboxesUnlockTimestamp);
+        _config.lootbox.batchMint(number, seasonId, season.uri, recipient, season.lootboxesUnlockTimestamp);
     }
 
     function addToWhiteList(uint256 seasonId, address[] calldata participants) external override isOwner {
@@ -80,11 +80,15 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         return MerkleProof.verify(merkleProof, _seasons[seasonId].merkleRoot, node);
     }
 
+    function getSeason(uint256 seasonId) public view override returns (Season memory) {
+        return _getSeason(seasonId);
+    }
+
     function _buyLootbox(uint256 seasonId, Season storage season) internal returns (uint256) {
         _seasons[seasonId].lootboxesNumber--;
         _lootboxesBought[seasonId][msg.sender]++;
 
-        uint256 id = _config.lootbox.mint(season.uri, msg.sender, season.lootboxesUnlockTimestamp);
+        uint256 id = _config.lootbox.mint(seasonId, season.uri, msg.sender, season.lootboxesUnlockTimestamp);
         emit LootboxBought(seasonId, msg.sender, address(_config.lootbox), id);
 
         _config.paymentTokenPrimary.transferFrom(msg.sender, _config.feeAggregator, season.lootboxPrice);

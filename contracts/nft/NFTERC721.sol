@@ -132,7 +132,6 @@ contract NFTERC721 is IERC165, IERC721, IERC721Metadata, Ownable, NFTStorage {
 
         string memory baseURI = _baseURI;
         string memory seasonURI = _seasonURI[tokenId];
-
         Level level = _levels[tokenId];
 
         return
