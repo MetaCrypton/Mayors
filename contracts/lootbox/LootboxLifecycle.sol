@@ -46,7 +46,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
     ) external override isMarketplaceOrOwner {
         _balances[owner] += number;
 
-        while (number-- > 1) {
+        for (; number > 0; number--) {
             uint256 id = _tokenIdCounter++;
             _owners[id] = owner;
             _seasonURI[id] = seasonURI;
