@@ -82,7 +82,7 @@ describe("Integration", function() {
     let nft;
     let lootbox;
     let marketplace;
-    let voteToken;
+    let votesToken;
     let voucherToken;
     let staking;
 
@@ -147,7 +147,6 @@ describe("Integration", function() {
             admin,
             "Lootboxes",
             "LBS",
-            "",
             admin.address
         );
         marketplace = await deploy(
@@ -163,7 +162,7 @@ describe("Integration", function() {
             admin.address
         );
         // TODO: change Token to Vote
-        voteToken = await deploy("Token", admin, "Vote token", "Vote", admin.address);
+        votesToken = await deploy("Token", admin, "Votes token", "Vote$", admin.address);
         voucherToken = await deploy(
             "Voucher",
             admin,
@@ -178,7 +177,7 @@ describe("Integration", function() {
             "Staking",
             admin,
             [
-                voteToken.address,
+                votesToken.address,
                 voucherToken.address,
             ],
             admin.address
@@ -530,10 +529,10 @@ describe("Integration", function() {
         const twoDays = 48 * 60 * 60 + 45 * 60;
 
         // mint votes
-        await voteToken.connect(admin).mint(alice.address, 1000);
-        await voteToken.connect(admin).mint(bob.address, 2000);
-        await voteToken.connect(alice).approve(staking.address, 1000);
-        await voteToken.connect(bob).approve(staking.address, 2000);
+        await votesToken.connect(admin).mint(alice.address, 400);
+        await votesToken.connect(admin).mint(bob.address, 2000);
+        await votesToken.connect(alice).approve(staking.address, 1000);
+        await votesToken.connect(bob).approve(staking.address, 2000);
 
         // try to stake wrong amounts of votes
         await expect(staking.connect(alice).stakeVotes(15)).to.be.revertedWith('WrongMultiplicity()');
@@ -542,9 +541,9 @@ describe("Integration", function() {
         // stake votes
         await staking.connect(alice).stakeVotes(500);
         await staking.connect(bob).stakeVotes(700);
-        assert.equal(await voteToken.balanceOf(alice.address), 500);
-        assert.equal(await voteToken.balanceOf(bob.address), 1300);
-        assert.equal(await voteToken.balanceOf(staking.address), 1200);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(staking.address), 1200);
 
         // increase time and stake again
         const blockNum = await ethers.provider.getBlockNumber();
@@ -560,9 +559,9 @@ describe("Integration", function() {
         await staking.connect(alice).stakeVotes(100);
 
         // check balances
-        assert.equal(await voteToken.balanceOf(alice.address), 400);
-        assert.equal(await voteToken.balanceOf(bob.address), 1300);
-        assert.equal(await voteToken.balanceOf(staking.address), 1300);
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(staking.address), 1300);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
 
@@ -585,7 +584,7 @@ describe("Integration", function() {
 
     it("Withdraw vouchers", async function() {
         // check balances
-        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 500);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 461);
@@ -600,7 +599,7 @@ describe("Integration", function() {
         await staking.connect(admin).withdrawVouchers(alice.address, 0, 2);
 
         // check balances after withdraw
-        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 961);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 0);
@@ -614,7 +613,7 @@ describe("Integration", function() {
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
 
         // bob without any changes
-        assert.equal(await voteToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
         assert.equal(await voucherToken.balanceOf(bob.address), 0);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
         // (700 staked votes / 500) * (152 hours / 24 hours)
@@ -623,7 +622,7 @@ describe("Integration", function() {
 
     it("Unstake votes", async function() {
         // before unstake
-        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 961);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
@@ -639,13 +638,13 @@ describe("Integration", function() {
         assert.equal(await staking.getStakesNumber(alice.address), 0);
 
         // after unstake
-        assert.equal(await voteToken.balanceOf(alice.address), 1000);
+        assert.equal(await votesToken.balanceOf(alice.address), 1000);
         assert.equal(await voucherToken.balanceOf(alice.address), 1210);
         await expect(staking.connect(alice).getVotesAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
         await expect(staking.connect(alice).getVouchersAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
 
         // bob was not hit
-        assert.equal(await voteToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
         assert.equal(await voucherToken.balanceOf(bob.address), 0);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
         assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 886);
