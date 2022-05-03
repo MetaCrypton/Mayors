@@ -11,7 +11,7 @@ describe("Integration", function() {
 
     const SEASON_ID_1 = 0;
     const SEASON_ID_2 = 1;
-    const LOOTBOXES_BATCH = 1497;
+    const LOOTBOXES_BATCH = 1030;
 
     const ALICE_MINT = 100;
     const CHARLIE_MINT = 200;
@@ -53,6 +53,8 @@ describe("Integration", function() {
         lootboxPrice: 100,
         lootboxesPerAddress: 3,
         lootboxesUnlockTimestamp: 0,
+        nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+        nftStartIndex: 0,
         merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
         isPublic: true,
         uri: "season1"
@@ -65,6 +67,8 @@ describe("Integration", function() {
         lootboxPrice: 100,
         lootboxesPerAddress: LOOTBOXES_BATCH,
         lootboxesUnlockTimestamp: 0,
+        nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+        nftStartIndex: NUMBER_IN_LOOTBOXES * season1.lootboxesNumber,
         merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
         isPublic: true,
         uri: "season2"
@@ -156,10 +160,6 @@ describe("Integration", function() {
                 token2.address,
                 admin.address,
             ],
-            [
-                season1,
-                season2
-            ],
             admin.address
         );
         // TODO: change Token to Vote
@@ -189,18 +189,35 @@ describe("Integration", function() {
             ]
         )
 
+        thriftbox = await deploy(
+            "Thriftbox",
+            admin,
+            [
+                votesToken.address,
+            ],
+            admin.address,
+        );
+
+
         await lootbox.connect(admin).updateConfig(
             [
-                NUMBER_IN_LOOTBOXES,
                 marketplace.address,
                 nft.address
-            ]
+            ],
+            "http://www.lootbox.json",
         );
         await nft.connect(admin).updateConfig(
             [
                 lootbox.address,
                 admin.address,
                 rarityCalculator.address
+            ]
+        );
+
+        await marketplace.connect(admin).addNewSeasons(
+            [
+                season1,
+                season2
             ]
         );
     });
@@ -255,7 +272,7 @@ describe("Integration", function() {
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
@@ -299,7 +316,7 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN1. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -329,7 +346,7 @@ describe("Integration", function() {
     });
 
     it("Update levels to GEN2. Get new hashrates", async function() {
-        for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
+        for (let i = season1.nftStartIndex; i < NUMBER_IN_LOOTBOXES * season1.lootboxesNumber; i++) {
             await nft.updateLevel(i);
 
             let rarity = await nft.getRarity(i);
@@ -377,13 +394,13 @@ describe("Integration", function() {
     });
 
     it("Validate nft ownership", async function() {
-        for (let i = 3; i < NUMBER_IN_LOOTBOXES + 3; i++) {
+        for (let i = season2.nftStartIndex; i < season2.nftStartIndex + NUMBER_IN_LOOTBOXES; i++) {
             assert.equal(await nft.ownerOf(i), alice.address);
         }
     });
 
     it("Get rarities & hashrates", async function() {
-        for (let i = 3; i < NUMBER_IN_LOOTBOXES + 3; i++) {
+        for (let i = season2.nftStartIndex; i < season2.nftStartIndex + NUMBER_IN_LOOTBOXES; i++) {
             let rarity = await nft.getRarity(i);
             let hashrate = await nft.getHashrate(i);
             let voteDiscount = await nft.getVoteDiscount(i);
@@ -415,6 +432,91 @@ describe("Integration", function() {
         let tx = await marketplace.connect(admin).sendLootboxes(SEASON_ID_2, LOOTBOXES_BATCH, alice.address, {gasLimit: 75501907});
 
         assert.equal(await lootbox.balanceOf(alice.address), LOOTBOXES_BATCH);
+    });
+
+    it("Deposit votes to thriftbox", async function() {
+        let deposit;
+
+        // mint votes for admin
+        await votesToken.connect(admin).mint(admin.address, 1000);
+        await votesToken.connect(admin).approve(thriftbox.address, 1000);
+        assert.equal(await votesToken.balanceOf(admin.address), 1000);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 0);
+
+        // deposit Votes to players, twice
+        await thriftbox.connect(admin).depositList([
+            {player: alice.address, amount: 200},
+            {player: bob.address, amount: 300},
+        ]);
+        await thriftbox.connect(admin).depositList([
+            {player: alice.address, amount: 300},
+            {player: bob.address, amount: 0},
+        ]);
+
+        // check balances
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
+
+        assert.equal(await thriftbox.getWithdrawalDate(alice.address), 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 500);
+
+        assert.equal(await thriftbox.getWithdrawalDate(bob.address), 0);
+        assert.equal(await thriftbox.balanceOf(bob.address), 300);
+    });
+
+    it("Withdraw votes from thriftbox", async function() {
+        let deposit;
+        let withdrawalDate1;
+        let withdrawalDate2;
+
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
+        assert.equal(await votesToken.balanceOf(alice.address), 0);
+
+        // withdraw and check balances
+        await thriftbox.connect(alice).withdraw();
+        assert.equal(await votesToken.balanceOf(admin.address), 200);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+
+        // check deposit
+        withdrawalDate1 = await thriftbox.getWithdrawalDate(alice.address);
+        assert.notEqual(withdrawalDate1, 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 0);
+
+        // deposit some votes
+        await thriftbox.connect(admin).depositList([
+            {player: alice.address, amount: 100},
+        ]);
+
+        // increase time
+        const twoHours = 2 * 60 * 60;
+        await ethers.provider.send('evm_increaseTime', [twoHours]);
+        await ethers.provider.send('evm_mine');
+
+        // try to withdraw after 2 hours
+        await expect(thriftbox.connect(alice).withdraw()).to.be.revertedWith('TooFrequentWithdrawals()');
+        assert.equal(await votesToken.balanceOf(admin.address), 100);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 400);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+
+        // increase time
+        const sevenDays = 7 * 24 * 60 * 60;
+        await ethers.provider.send('evm_increaseTime', [sevenDays]);
+        await ethers.provider.send('evm_mine');
+
+        // try to withdraw after 7 days more
+        await thriftbox.connect(alice).withdraw();
+        assert.equal(await votesToken.balanceOf(admin.address), 100);
+        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await votesToken.balanceOf(alice.address), 600);
+
+        // check deposit
+        withdrawalDate2 = await thriftbox.getWithdrawalDate(alice.address);
+        assert.notEqual(withdrawalDate2, 0);
+        assert.equal(await thriftbox.balanceOf(alice.address), 0);
+
+        assert.equal(withdrawalDate2 - withdrawalDate1 >= twoHours + sevenDays, true);
     });
 
     it("Mint and burn vouchers", async function() {
