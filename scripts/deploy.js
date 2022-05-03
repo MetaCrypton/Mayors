@@ -8,7 +8,8 @@ async function deploy(contractName, signer, ...args) {
 }
 
 async function main() {
-    const BASE_URI = "https://mayorsurl.io";
+    const MAYORS_BASE_URI = "https://mayorsurl.io";
+    const LOOTBOXES_BASE_URI = "http://www.lootbox.json"
     const SEASON_1_URI = "season_uri_1";
     const SEASON_2_URI = "season_uri_2";
 
@@ -65,13 +66,14 @@ async function main() {
         admin,
         mayorName,
         mayorSymbol,
-        BASE_URI,
-        admin.address
+        MAYORS_BASE_URI,
+        admin.address,
     );
     console.log("NFT:", nft.address);
     console.log("--- name: ", mayorName);
     console.log("--- symbol: ", mayorSymbol);
-    console.log("--- baseUrl: ", BASE_URI);
+    console.log("--- baseUrl: ", MAYORS_BASE_URI);
+    console.log("--- owner: ", admin.address);
 
     const lootboxName = "Lootboxes"
     const lootboxSymbol = "LBS"
@@ -80,13 +82,12 @@ async function main() {
         admin,
         lootboxName,
         lootboxSymbol,
-        BASE_URI,   // ???
-        admin.address
+        admin.address,
     );
     console.log("Lootbox:", lootbox.address);
     console.log("--- name: ", lootboxName);
     console.log("--- symbol: ", lootboxSymbol);
-    console.log("--- baseUrl: ", BASE_URI);
+    console.log("--- owner: ", admin.address);
 
     let seasonId = 0;
     let startTimestamp = 0;
@@ -94,6 +95,19 @@ async function main() {
     let lootboxesUnlockTimestamp = 0;
     let nftStartIndex = 0;
     let isPublic = true;
+    const season1 = [
+        startTimestamp,
+        endTimestamp,
+        LOOTBOXES_CAP,
+        PRICE,
+        LOOTBOXES_PER_ADDRESS,
+        lootboxesUnlockTimestamp,
+        NUMBER_IN_LOOTBOXES,
+        nftStartIndex,
+        MERKLE_ROOT,
+        isPublic,
+        SEASON_1_URI,
+    ]
     let marketplace = await deploy(
         "Marketplace",
         admin,
@@ -104,22 +118,31 @@ async function main() {
             token2.address,
             admin.address,
         ],
-        [[
-            startTimestamp,
-            endTimestamp,
-            LOOTBOXES_CAP,
-            PRICE,
-            LOOTBOXES_PER_ADDRESS,
-            lootboxesUnlockTimestamp,
-            NUMBER_IN_LOOTBOXES,
-            nftStartIndex,
-            MERKLE_ROOT,
-            isPublic,
-            SEASON_1_URI,
-        ]],
-        admin.address
+        admin.address,
     );
     console.log("Marketplace:", marketplace.address);
+
+    await lootbox.connect(admin).updateConfig(
+        [
+            marketplace.address,
+            nft.address,
+        ],
+        LOOTBOXES_BASE_URI,
+    );
+    console.log("Lootbox config was updated:", lootbox.address);
+    console.log("--- baseUri: ", LOOTBOXES_BASE_URI);
+
+    await nft.connect(admin).updateConfig(
+        [
+            lootbox.address,
+            admin.address,
+            rarityCalculator.address
+        ]
+    );
+    console.log("NFT config was updated:", nft.address);
+
+    await marketplace.connect(admin).addNewSeasons([season1]);
+    console.log("New season:");
     console.log("--- season0.startTimestamp: ", startTimestamp);
     console.log("--- season0.endTimestamp: ", endTimestamp);
     console.log("--- season0.lootboxesNumber: ", LOOTBOXES_CAP);
@@ -131,23 +154,6 @@ async function main() {
     console.log("--- season0.merkleRoot: ", MERKLE_ROOT);
     console.log("--- season0.isPublic: ", isPublic);
     console.log("--- season0.uri: ", SEASON_1_URI);
-
-    await lootbox.connect(admin).updateConfig(
-        [
-            marketplace.address,
-            nft.address,
-        ]
-    );
-    console.log("Lootbox config updated:", lootbox.address);
-
-    await nft.connect(admin).updateConfig(
-        [
-            lootbox.address,
-            admin.address,
-            rarityCalculator.address
-        ]
-    );
-    console.log("NFT config updated:", nft.address);
 
     await token1.connect(admin).mint(alice.address, ALICE_MINT);
     await token1.connect(admin).mint(bob.address, BOB_MINT);
@@ -236,7 +242,7 @@ async function main() {
         let hashrate = await nft.getHashrate(i);
         let voteDiscount = await nft.getVoteDiscount(i);
 
-        assert.equal(await nft.tokenURI(i), `${BASE_URI}/${SEASON_1_URI}/${i}/${i}_1.json`);
+        assert.equal(await nft.tokenURI(i), `${MAYORS_BASE_URI}/${SEASON_1_URI}/${i}/${i}_1.json`);
 
         if (rarity == RARITIES.common) {
             assert.equal(voteDiscount, 1);
@@ -264,7 +270,7 @@ async function main() {
         let hashrate = await nft.getHashrate(i);
         let voteDiscount = await nft.getVoteDiscount(i);
 
-        assert.equal(await nft.tokenURI(i), `${BASE_URI}/${SEASON_1_URI}/${i}/${i}_2.json`);
+        assert.equal(await nft.tokenURI(i), `${MAYORS_BASE_URI}/${SEASON_1_URI}/${i}/${i}_2.json`);
 
         if (rarity == RARITIES.common) {
             assert.equal(voteDiscount, 2);
