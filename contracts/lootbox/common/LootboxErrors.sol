@@ -9,4 +9,5 @@ library LootboxErrors {
     error Overflow();
     error SameConfig();
     error NotUnlocked();
+    error NoSeasonInfo();
 }

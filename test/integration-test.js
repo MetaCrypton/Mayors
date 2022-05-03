@@ -11,7 +11,7 @@ describe("Integration", function() {
 
     const SEASON_ID_1 = 0;
     const SEASON_ID_2 = 1;
-    const LOOTBOXES_BATCH = 1030;
+    const LOOTBOXES_BATCH = 1500;
 
     const ALICE_MINT = 100;
     const CHARLIE_MINT = 200;

@@ -6,8 +6,10 @@ interface ILootboxLifecycle {
     function mint(
         uint256 seasonId,
         string calldata seasonUri,
-        address owner,
-        uint256 unlockTimestamp
+        uint256 nftStartIndex,
+        uint256 nftNumberInLootbox,
+        uint256 unlockTimestamp,
+        address owner
     ) external returns (uint256 tokenId);
 
     function reveal(uint256 tokenId) external returns (uint256[] memory tokenIds);
@@ -16,8 +18,10 @@ interface ILootboxLifecycle {
         uint256 number,
         uint256 seasonId,
         string calldata seasonUri,
-        address owner,
-        uint256 unlockTimestamp
+        uint256 nftStartIndex,
+        uint256 nftNumberInLootbox,
+        uint256 unlockTimestamp,
+        address owner
     ) external;
 
     function getUnlockTimestamp(uint256 tokenId) external view returns (uint256);

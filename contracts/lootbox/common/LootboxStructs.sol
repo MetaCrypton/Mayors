@@ -10,6 +10,8 @@ struct LootboxConfig {
 }
 
 struct SeasonInfo {
-    uint256 id;
+    uint256 lootboxesCounter;
     string uri;
+    uint256 nftStartIndex;
+    uint256 nftNumberInLootbox;
 }
