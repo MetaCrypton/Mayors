@@ -7,14 +7,8 @@ import "./MarketplacePrimary.sol";
 import "./MarketplaceSecondary.sol";
 
 contract Marketplace is MarketplaceConfiguration, MarketplacePrimary, MarketplaceSecondary {
-    constructor(
-        MarketplaceConfig memory config,
-        Season[] memory seasons,
-        address owner
-    ) {
+    constructor(MarketplaceConfig memory config, address owner) {
         _config = config;
         _owner = owner;
-
-        _addNewSeasons(seasons);
     }
 }

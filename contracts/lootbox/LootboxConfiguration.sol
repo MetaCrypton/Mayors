@@ -8,9 +8,11 @@ import "./common/LootboxStorage.sol";
 import "../common/ownership/Ownable.sol";
 
 contract LootboxConfiguration is ILootboxConfiguration, ILootboxEvents, Ownable, LootboxStorage {
-    function updateConfig(LootboxConfig calldata config) external override isOwner {
-        if (keccak256(abi.encode(_config)) == keccak256(abi.encode(config))) revert LootboxErrors.SameConfig();
+    function updateConfig(LootboxConfig calldata config, string calldata uri) external override isOwner {
+        if (keccak256(abi.encode(_config, _baseURI)) == keccak256(abi.encode(config, uri)))
+            revert LootboxErrors.SameConfig();
         _config = config;
+        _baseURI = uri;
         emit ConfigUpdated();
     }
 
