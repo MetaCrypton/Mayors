@@ -146,7 +146,6 @@ describe("Integration", function() {
             admin,
             "Lootboxes",
             "LBS",
-            "",
             admin.address
         );
         marketplace = await deploy(
@@ -158,10 +157,6 @@ describe("Integration", function() {
                 token1.address,
                 token2.address,
                 admin.address,
-            ],
-            [
-                season1,
-                season2
             ],
             admin.address
         );
@@ -181,13 +176,21 @@ describe("Integration", function() {
             [
                 marketplace.address,
                 nft.address
-            ]
+            ],
+            "http://www.lootbox.json",
         );
         await nft.connect(admin).updateConfig(
             [
                 lootbox.address,
                 admin.address,
                 rarityCalculator.address
+            ]
+        );
+
+        await marketplace.connect(admin).addNewSeasons(
+            [
+                season1,
+                season2
             ]
         );
     });
