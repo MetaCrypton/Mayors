@@ -13,7 +13,7 @@ enum Building {
 
 struct Region {
     bool active;
-    uint256 endVotingTimestamp;
+    uint256 startVotingTimestamp;
 }
 
 struct City {
@@ -32,18 +32,16 @@ struct NewCity {
     uint256 votePrice;
 }
 
-struct Mayor {
-    bool elected;
-    uint256 mayorId;
-}
 
 struct Nominee {
     uint256 mayorId;
     uint256 votes;
 }
 
-struct Reward {
+struct Win {
     uint256 cityId;
-    uint256 amount;
+    uint256 bank;
+    uint256 season;
+    bool claimed;
     // uint256 burnAmount;
 }
