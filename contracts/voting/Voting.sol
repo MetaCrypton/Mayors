@@ -11,17 +11,14 @@ import "./VotingConstants.sol";
 import "./VotingStructs.sol";
 import "./VotingErrors.sol";
 
-import "hardhat/console.sol";
-
-// TODO: add all necessary events
-
 contract Voting is IVoting, Ownable {
     NFT public mayor;
     Token public votesToken;
     Token public voucherToken;
 
-    uint256 internal constant VOTING_DURATION = 86400; //24 hours in milliseconds
-    uint256 internal constant GOVERNANCE_DURATION = 86400 * 6; //6 days in milliseconds
+    uint256 internal constant VOTING_DURATION = 86400; //24 hours in seconds
+    uint256 internal constant GOVERNANCE_DURATION = 86400 * 5; //5 days in seconds
+    uint256 internal constant CLAIMING_DURATION = 86400; //24 hours in seconds
 
     uint256 internal constant PRIZE_RATE = 87;
     // uint256 internal constant REWARD_POOL_RATE = 10;
@@ -38,15 +35,14 @@ contract Voting is IVoting, Ownable {
     mapping(uint256 => uint256[]) internal _regionToCities;
 
     // city id => Mayor
-    mapping(uint256 => Mayor) public cityToMayor;
+    mapping(uint256 => uint256) public cityToMayor;
 
     // TODO: change bool to the timestamp for calculating Monument reward? 
-    // owner address => city id => Building => exists
-    mapping(address => mapping(uint256 => mapping(Building => bool))) internal _ownerToBuildings;
+    // owner address => city id => Building => 0: not exists, >0: season number +1
+    mapping(address => mapping(uint256 => mapping(Building => uint256))) internal _ownerToBuildings;
 
-    // TODO: who will call the function for storing this and when?
-    // owner address => Reward
-    mapping(address => mapping(uint256 => Reward)) internal _ownerToRewards;
+    // owner address => [Win]
+    mapping(address => Win[]) internal _ownerToWins;
 
     // city id => Nominee
     mapping(uint256 => Nominee[]) internal _cityToNominees;
@@ -102,24 +98,20 @@ contract Voting is IVoting, Ownable {
         emit VotePriceUpdated(cityId, city.votePrice, newPrice);
     }
 
-    function startVoting(uint256 regionId) external override isOwner {
-        _startVoting(regionId);
-    }
-
     function addBuilding(
         uint256 cityId,
         uint256 mayorId,
         Building newBuilding
     ) external override {
+        if(!_isGoverningPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         if(
             mayor.ownerOf(mayorId) != msg.sender ||
-            !cityToMayor[cityId].elected ||
-            cityToMayor[cityId].mayorId != mayorId
+            cityToMayor[cityId] != mayorId
         ) revert VotingErrors.WrongMayor();
         uint256 buildingPrice = _getBuildingPrice(newBuilding);
         if(voucherToken.balanceOf(msg.sender) < buildingPrice) revert VotingErrors.InsufficientBalance();
-        if(_ownerToBuildings[msg.sender][cityId][newBuilding]) revert VotingErrors.BuildingDuplicate();
-        _ownerToBuildings[msg.sender][cityId][newBuilding] = true;
+        if(_ownerToBuildings[msg.sender][cityId][newBuilding] > 0) revert VotingErrors.BuildingDuplicate();
+        _ownerToBuildings[msg.sender][cityId][newBuilding] = _seasonNumber(_cities[cityId].regionId) + 1;
         emit BuildingAdded(newBuilding, cityId, msg.sender);
         voucherToken.transferFrom(msg.sender, address(this), buildingPrice);
     }
@@ -130,7 +122,7 @@ contract Voting is IVoting, Ownable {
         uint256 votes
     ) external override {
         if (!_cities[cityId].active) revert VotingErrors.InactiveObject();
-        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectVotingPeriod();
+        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         if(mayor.ownerOf(mayorId) != msg.sender) revert VotingErrors.WrongMayor();
         // get the price of those votes
         uint256 priceInVotes = _calculateVotesPrice(mayorId, cityId, votes);
@@ -146,21 +138,27 @@ contract Voting is IVoting, Ownable {
 
     function chooseWinner(uint256 regionId) external override {
         if (!_regions[regionId].active) revert VotingErrors.InactiveObject();
-        if (_isVotingPeriod(regionId)) revert VotingErrors.IncorrectVotingPeriod();
+        if (_isVotingPeriod(regionId)) revert VotingErrors.IncorrectPeriod();
         uint256[] memory citiesIds = _regionToCities[regionId];
-        uint256[] memory winnersIds = new uint256[](citiesIds.length);
+        uint256 winnerId = 0;
         for (uint256 i = 0; i < citiesIds.length; i++) {
             if (_cities[citiesIds[i]].active) {
                 Nominee[] memory nominees = _cityToNominees[citiesIds[i]];
                 if (_cities[citiesIds[i]].bank > 0) {
-                    winnersIds[i] = _calculateWinner(regionId, citiesIds[i], nominees);
-                    cityToMayor[citiesIds[i]] = Mayor({elected: true, mayorId: winnersIds[i]});
+                    winnerId = _calculateWinner(regionId, citiesIds[i], nominees);
+                    cityToMayor[citiesIds[i]] = winnerId;
+                    // TODO: add burnAmount
+                    // _calculatePrizeToBurn(citiesIds[i]);
+                    _ownerToWins[mayor.ownerOf(winnerId)].push(Win({
+                        cityId: citiesIds[i], bank: _cities[citiesIds[i]].bank,
+                        season: _seasonNumber(regionId) + 1, claimed: false
+                    }));
+                    _cities[citiesIds[i]].bank = 0;
                 }
             }
-            
         }
 
-        emit Winners(regionId, winnersIds);
+        emit WinnersChosen(regionId);
     }
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external override isOwner {
@@ -179,44 +177,27 @@ contract Voting is IVoting, Ownable {
         emit RegionsUpdated(regionsIds, isOpen);
     }
 
-
-    // TODO: should it be done for the city, one region, multiple regions?
-    // TODO: should we use moneybox contract for saving data?
-    function savePrizeInfo(uint256 cityId) external override {
-        // uint256 burnAmount = _calculatePrizeToBurn(cityId);
-        address account = mayor.ownerOf(cityToMayor[cityId].mayorId);
-        uint256 prize = _calculatePrizeToUser(cityId, account);
-        if (_ownerToRewards[account][cityId].amount > 0) {
-            _ownerToRewards[account][cityId].amount += prize;
-            // _ownerToRewards[account][cityId].burnAmount += burnAmount;
-        } else {
-            // _ownerToRewards[account][cityId] = Reward({cityId: cityId, amount: prize, burnAmount: burnAmount});
-            _ownerToRewards[account][cityId] = Reward({cityId: cityId, amount: prize});
-        }
-    }
-
-    function claimPrize(uint256[] calldata cityIds) external override {
+    function claimPrize(uint256 regionId) external override {
+        if (!_isRewardPeriod(regionId)) revert VotingErrors.IncorrectPeriod();
         uint256 totalPrize = 0;
+        Win[] memory ownerWins = _ownerToWins[msg.sender];
         // uint256 totalBurn = 0;
-        for (uint256 i = 0; i < cityIds.length; i++) {
-            totalPrize += _ownerToRewards[msg.sender][cityIds[i]].amount;
-            // totalBurn += _ownerToRewards[msg.sender][cityIds[i]].burnAmount;
-            delete _ownerToRewards[msg.sender][cityIds[i]];
+        for (uint256 i = 0; i < ownerWins.length; i++) {
+            if(!ownerWins[i].claimed) {
+                totalPrize += _calculatePrizeToUser(
+                    ownerWins[i].cityId, msg.sender, ownerWins[i].season, ownerWins[i].bank
+                );
+                _ownerToWins[msg.sender][i].claimed = true;
+                // totalBurn += _ownerToRewards[msg.sender][cityIds[i]].burnAmount;
+            }
         }
         // send tokens to the winner
         if (totalPrize > 0) {
             votesToken.transfer(msg.sender, totalPrize);
+            emit PrizeClaimed(msg.sender, totalPrize);
         }
         // TODO: 3% needs to be burned
         // votesToken.burn(totalBurn);
-    }
-
-    function trensferRewards(address account, uint256 amountVotes, uint256 amountVouchers) external override isOwner {
-        if(
-            votesToken.balanceOf(account) < amountVotes || voucherToken.balanceOf(account) < amountVouchers
-        ) revert VotingErrors.InsufficientBalance();
-        votesToken.transfer(account, amountVotes);
-        voucherToken.transfer(account, amountVouchers);
     }
 
     function calculateVotesPrice(
@@ -227,33 +208,56 @@ contract Voting is IVoting, Ownable {
         return _calculateVotesPrice(mayorId, cityId, votes);
     }
 
-    function calculatePrize(uint256 cityId) external view override returns(uint256) {
-        return _calculatePrizeToUser(cityId, mayor.ownerOf(cityToMayor[cityId].mayorId));
+    function calculatePrize(uint256 cityId) external view override returns(uint256 prize) {
+        uint256 season = _seasonNumber(_cities[cityId].regionId) + 1;
+        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
+        prize = 0;
+        Win[] memory ownerWins = _ownerToWins[mayor.ownerOf(cityToMayor[cityId])];
+        for (uint256 i = ownerWins.length; i > 0; i--) {
+            if (ownerWins[i-1].season == season && ownerWins[i-1].cityId == cityId) {
+                prize =  _calculatePrizeToUser(
+                    cityId, mayor.ownerOf(cityToMayor[cityId]), season, ownerWins[i-1].bank
+                );
+                break;
+            }
+        }
     }
 
     function _startVoting(uint256 regionId) internal {
-        uint256[] memory cityIds = _regionToCities[regionId];
-        for (uint256 i=0; i < cityIds.length; i++) {
-            delete cityToMayor[cityIds[i]];
-            _cities[cityIds[i]].bank = 0;
-        }
         // solhint-disable-next-line not-rely-on-time
         uint256 currentTimestamp = block.timestamp;
-        uint256 endVoting = currentTimestamp + VOTING_DURATION;
-        Region memory region = _regions[regionId];
-        if (region.endVotingTimestamp == 0) {
-            _regions[regionId] = Region({ active: true, endVotingTimestamp: endVoting });
-        } else {
-            if(region.endVotingTimestamp > currentTimestamp) revert VotingErrors.IncorrectVotingPeriod();
-            if(!region.active) revert VotingErrors.InactiveObject();
-            _regions[regionId].endVotingTimestamp = endVoting;
+        if (_regions[regionId].startVotingTimestamp == 0) {
+            _regions[regionId] = Region({active: true, startVotingTimestamp: currentTimestamp});
+            emit VotingStarted(regionId, currentTimestamp);
         }
-        emit VotingStarted(regionId, endVoting);
     }
 
-    function _isVotingPeriod(uint256 regionId) internal view returns(bool) {
+    function _seasonNumber(uint256 regionId) internal view returns(uint256) {
         // solhint-disable-next-line not-rely-on-time
-        return _regions[regionId].endVotingTimestamp > block.timestamp;
+        return (block.timestamp - _regions[regionId].startVotingTimestamp) /
+            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION);
+    }
+
+    function _isVotingPeriod(uint256 regionId) internal view returns(bool ok) {
+        // solhint-disable-next-line not-rely-on-time
+        ok = ((block.timestamp - _regions[regionId].startVotingTimestamp) %
+            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) < VOTING_DURATION;
+    }
+
+    function _isGoverningPeriod(uint256 regionId) internal view returns(bool) {
+        /* solhint-disable not-rely-on-time */
+        return 
+            ((block.timestamp - _regions[regionId].startVotingTimestamp) %
+                (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) > VOTING_DURATION &&
+            ((block.timestamp - _regions[regionId].startVotingTimestamp) %
+                (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) < (VOTING_DURATION + GOVERNANCE_DURATION);
+        /* solhint-enable not-rely-on-time */
+    }
+
+    function _isRewardPeriod(uint256 regionId) internal view returns(bool) {
+        // solhint-disable-next-line not-rely-on-time
+        return ((block.timestamp - _regions[regionId].startVotingTimestamp) %
+            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) > (VOTING_DURATION + GOVERNANCE_DURATION);
     }
 
     function _calculateVotesPrice(
@@ -261,7 +265,7 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 votes
     ) internal view returns(uint256) {
-        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectVotingPeriod();
+        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         if(
             votes > ((_cities[cityId].population * votesPerCitizen / 1 ether) - _cities[cityId].bank)
         ) revert VotingErrors.VotesBankExceeded();
@@ -269,9 +273,9 @@ contract Voting is IVoting, Ownable {
     }
 
     function _getBuildingsDiscount(uint256 cityId, address account) internal view returns(uint256) {
-        if (_ownerToBuildings[account][cityId][Building.University]) {
+        if (_ownerToBuildings[account][cityId][Building.University] > 0) {
             return VotingConstants.BUILDING_DISCOUNT_UNIVERSITY;
-        } else if (_ownerToBuildings[account][cityId][Building.Hospital]) {
+        } else if (_ownerToBuildings[account][cityId][Building.Hospital] > 0) {
             return VotingConstants.BUILDING_DISCOUNT_HOSPITAL;
         } else {
             return 0;
@@ -304,36 +308,38 @@ contract Voting is IVoting, Ownable {
     }
 
     // TODO: calculate Monument rate
-    function _calculateGovernanceRate(uint256 cityId, address account) internal view returns(uint256) {
-        if (_ownerToBuildings[account][cityId][Building.Bank]) {
+    function _calculateGovernanceRate(uint256 cityId, address account, uint256 season) internal view returns(uint256) {
+        if (
+            _ownerToBuildings[account][cityId][Building.Bank] > 0 &&
+            _ownerToBuildings[account][cityId][Building.Bank] <= season
+        ) {
             return VotingConstants.GOVERNANCE_RATE_BANK;
-        } else if (_ownerToBuildings[account][cityId][Building.Factory]) {
+        } else if (
+            _ownerToBuildings[account][cityId][Building.Factory] > 0 &&
+            _ownerToBuildings[account][cityId][Building.Factory] <= season
+        ) {
             return VotingConstants.GOVERNANCE_RATE_FACTORY;
-        } else if (_ownerToBuildings[account][cityId][Building.Stadium]) {
+        } else if (
+            _ownerToBuildings[account][cityId][Building.Stadium] > 0 &&
+            _ownerToBuildings[account][cityId][Building.Stadium] <= season
+        ) {
             return VotingConstants.GOVERNANCE_RATE_STADIUM;
         } else {
             return 0;
         }
     }
 
-    function _isRewardPeriod(uint256 cityId) internal view returns(bool) {
-        // solhint-disable-next-line not-rely-on-time
-        return (_regions[_cities[cityId].regionId].endVotingTimestamp + GOVERNANCE_DURATION) < block.timestamp;
+    function _calculatePrizeToUser(
+        uint256 cityId,
+        address account,
+        uint256 season,
+        uint256 bank
+    ) internal view returns(uint256) {
+        return bank * (PRIZE_RATE + _calculateGovernanceRate(cityId, account, season)) / 100;
     }
-
-    function _calculatePrizeToUser(uint256 cityId, address account) internal view returns(uint256) {
-        if (!_isRewardPeriod(cityId)) revert VotingErrors.IncorrectVotingPeriod();
-        // return _cityToBank[cityId] * (PRIZE_RATE + _calculateGovernanceRate(cityId, msg.sender)) / 100;
-        return _cities[cityId].bank * (PRIZE_RATE + _calculateGovernanceRate(cityId, account)) / 100;
-    }
-
-    // function _calculatePrizeToRewardPool(uint256 cityId) internal view returns(uint256) {
-    //     if (!_isRewardPeriod(cityId)) revert VotingErrors.IncorrectVotingPeriod();
-    //     return _cityToBank[cityId] * REWARD_POOL_RATE / 100;
-    // }
 
     function _calculatePrizeToBurn(uint256 cityId) internal view returns(uint256) {
-        if (!_isRewardPeriod(cityId)) revert VotingErrors.IncorrectVotingPeriod();
+        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         return _cities[cityId].bank * REWARD_BURN_RATE / 100;
     }
 

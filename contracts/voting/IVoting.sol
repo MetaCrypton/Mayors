@@ -11,9 +11,10 @@ interface IVoting {
     event VotingStarted(uint256 regionId, uint256 endVotingTimestamp);
     event BuildingAdded(Building newBuilding, uint256 cityId, address owner);
     event CandidateAdded(uint256 mayorId, uint256 cityId, uint256 votes);
-    event CitiesUpdated(uint256[] closedCities, bool isOpen);
-    event RegionsUpdated(uint256[] closedRegions, bool isOpen);
-    event Winners(uint256 regionId, uint256[] winners);
+    event CitiesUpdated(uint256[] updatedCities, bool isOpen);
+    event RegionsUpdated(uint256[] updatedRegions, bool isOpen);
+    event WinnersChosen(uint256 regionId);
+    event PrizeClaimed(address account, uint256 amount);
     event VotesPerCitizenUpdated(uint256 oldAmount, uint256 amount);
 
     function changeVotesPerCitizen(uint256 amount) external;
@@ -21,8 +22,6 @@ interface IVoting {
     function addCities(uint256 regionId, NewCity[] calldata newCities) external;
 
     function changeCityVotePrice(uint256 cityId, uint256 newPrice) external;
-
-    function startVoting(uint256 regionId) external;
 
     function addBuilding(
         uint256 cityId,
@@ -42,11 +41,7 @@ interface IVoting {
 
     function updateRegions(uint256[] calldata regionsIds, bool isOpen) external;
 
-    function claimPrize(uint256[] calldata cityIds) external;
-
-    function savePrizeInfo(uint256 cityId) external;
-
-    function trensferRewards(address account, uint256 amountVotes, uint256 amountVouchers) external; 
+    function claimPrize(uint256 regionId) external;
 
     function calculateVotesPrice(
         uint256 mayorId,

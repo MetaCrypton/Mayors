@@ -10,6 +10,6 @@ library VotingErrors {
     error BuildingDuplicate();
     error InactiveObject();
     error VotesBankExceeded();
-    error IncorrectVotingPeriod();
+    error IncorrectPeriod();
     error IncorrectValue();
 }
