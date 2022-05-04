@@ -54,28 +54,31 @@ async function deployMarketplace(admin, nftAddress, lootboxAddress, token1Addres
 }
 
 async function main() {
+    let token1Address = "0x1E66e23920C4D0fd2B8102804D7E5b2Cc5Bfb10A";
+    let token2Address = "0xF79660f21C004C31683f248b91C357cfe5833ACE";
+    let rarityCalculatorAddress = "0x716Af5C2FE11d8C23eD2f2a8F2f89082a8254281";
+    let nftAddress;
+    let lootboxAddress;
+    let marketplaceAddress;
+
     const [admin] = await ethers.getSigners();
     console.log("Deploying contracts with the account:", admin.address);
     console.log("Account balance:", (await admin.getBalance()).toString());
 
-    const token1Address = "0x1E66e23920C4D0fd2B8102804D7E5b2Cc5Bfb10A"
-    const token2Address = "0xF79660f21C004C31683f248b91C357cfe5833ACE"
     console.log("Token 1:", token1Address);
     console.log("Token 2:", token2Address);
-
-    const rarityCalculatorAddress = "0x716Af5C2FE11d8C23eD2f2a8F2f89082a8254281";
     console.log("Rarity calculator:", rarityCalculatorAddress);
 
     let nft = await deployNFT(admin);
-    const nftAddress = nft.address;
+    nftAddress = nft.address;
     console.log("NFT:", nftAddress);
 
     let lootbox = await deployLootbox(admin);
-    const lootboxAddress = lootbox.address;
+    lootboxAddress = lootbox.address;
     console.log("Lootbox:", lootboxAddress);
 
     let marketplace = await deployMarketplace(admin, nftAddress, lootboxAddress, token1Address, token2Address);
-    const marketplaceAddress = marketplace.address;
+    marketplaceAddress = marketplace.address;
     console.log("Marketplace:", marketplaceAddress);
 
     await lootbox.connect(admin).updateConfig(
