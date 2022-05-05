@@ -83,7 +83,8 @@ describe("Integration", function() {
     let lootbox;
     let marketplace;
     let votesToken;
-    let thriftbox;
+    let voucherToken;
+    let staking;
 
     async function deploy(contractName, signer, ...args) {
         const Factory = await ethers.getContractFactory(contractName, signer)
@@ -160,8 +161,33 @@ describe("Integration", function() {
             ],
             admin.address
         );
+        // TODO: change Token to Vote
+        votesToken = await deploy("Token", admin, "Votes token", "Vote$", admin.address);
+        voucherToken = await deploy(
+            "Voucher",
+            admin,
+            "Voucher token",
+            "BVoucher",
+            [
+                ethers.constants.AddressZero
+            ],
+            admin.address
+        );
+        staking = await deploy(
+            "Staking",
+            admin,
+            [
+                votesToken.address,
+                voucherToken.address,
+            ],
+            admin.address
+        );
+        await voucherToken.connect(admin).updateConfig(
+            [
+                staking.address,
+            ]
+        )
 
-        votesToken = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
         thriftbox = await deploy(
             "Thriftbox",
             admin,
@@ -490,5 +516,137 @@ describe("Integration", function() {
         assert.equal(await thriftbox.balanceOf(alice.address), 0);
 
         assert.equal(withdrawalDate2 - withdrawalDate1 >= twoHours + sevenDays, true);
+    });
+
+    it("Mint and burn vouchers", async function() {
+        await voucherToken.connect(admin).mint(alice.address, 500);
+        await expect(voucherToken.connect(alice).mint(alice.address, 500)).to.be.revertedWith('NoPermission()');
+        assert.equal(await voucherToken.balanceOf(alice.address), 500);
+    });
+
+    it("Stake votes", async function() {
+        const twoHours = 2 * 60 * 60;
+        const twoDays = 48 * 60 * 60 + 45 * 60;
+
+        // mint votes
+        await votesToken.connect(admin).mint(alice.address, 400);
+        await votesToken.connect(admin).mint(bob.address, 2000);
+        await votesToken.connect(alice).approve(staking.address, 1000);
+        await votesToken.connect(bob).approve(staking.address, 2000);
+
+        // try to stake wrong amounts of votes
+        await expect(staking.connect(alice).stakeVotes(15)).to.be.revertedWith('WrongMultiplicity()');
+        await expect(staking.connect(alice).stakeVotes(200)).to.be.revertedWith('NotEnoughVotesForStake()');
+
+        // stake votes
+        await staking.connect(alice).stakeVotes(500);
+        await staking.connect(bob).stakeVotes(700);
+        assert.equal(await votesToken.balanceOf(alice.address), 500);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(staking.address), 1200);
+
+        // increase time and stake again
+        const blockNum = await ethers.provider.getBlockNumber();
+        const block = await ethers.provider.getBlock(blockNum);
+        const timestamp = block.timestamp;
+
+        await ethers.provider.send('evm_increaseTime', [twoHours]);
+        await ethers.provider.send('evm_mine');
+        await expect(staking.connect(alice).stakeVotes(100)).to.be.revertedWith('TooOftenStaking()');
+
+        await ethers.provider.send('evm_increaseTime', [twoDays]);
+        await ethers.provider.send('evm_mine');
+        await staking.connect(alice).stakeVotes(100);
+
+        // check balances
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await votesToken.balanceOf(staking.address), 1300);
+        assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
+        assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
+
+        // check accumulated vouchers
+        // (500 staked votes / 500) * (50 hours / 24 hours)
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 208);
+        // (700 staked votes / 500) * (50 hours / 24 hours)
+        assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 291);
+
+        // increase time again and check accumulated vouchers
+        await ethers.provider.send('evm_increaseTime', [twoHours + twoDays]);
+        await ethers.provider.send('evm_mine');
+
+        // (500 staked votes / 500) * (101 hours / 24 hours) +
+        // (100 staked votes / 500) * (50 hours / 24 hours)
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 461);
+        // (700 staked votes / 500) * (101 hours / 24 hours)
+        assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 589);
+    });
+
+    it("Withdraw vouchers", async function() {
+        // check balances
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voucherToken.balanceOf(alice.address), 500);
+        assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 461);
+        assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 589);
+
+        // wrong staker address
+        const zeroAddress = ethers.constants.AddressZero;
+        await expect(staking.connect(admin).withdrawVouchers(zeroAddress, 0, 1)).to.be.revertedWith('WrongEndIndex()');
+
+        // withdraw twice
+        await staking.connect(admin).withdrawVouchers(alice.address, 0, 2);
+        await staking.connect(admin).withdrawVouchers(alice.address, 0, 2);
+
+        // check balances after withdraw
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voucherToken.balanceOf(alice.address), 961);
+        assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 0);
+
+        // increase time
+        const fiftyHours = 50 * 60 * 60 + 45 * 60;
+        await ethers.provider.send('evm_increaseTime', [fiftyHours]);
+        await ethers.provider.send('evm_mine');
+
+        // check accumulated vouchers
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
+
+        // bob without any changes
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await voucherToken.balanceOf(bob.address), 0);
+        assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
+        // (700 staked votes / 500) * (152 hours / 24 hours)
+        assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 886);
+    });
+
+    it("Unstake votes", async function() {
+        // before unstake
+        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voucherToken.balanceOf(alice.address), 961);
+        assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
+        assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
+
+        // unstake
+        assert.equal(await staking.getStakersNumber(), 2);
+        assert.equal(await staking.getStakesNumber(alice.address), 2);
+        await staking.connect(alice).unstakeVotes(0, 1);
+        assert.equal(await staking.getStakersNumber(), 2);
+        assert.equal(await staking.getStakesNumber(alice.address), 1);
+        await staking.connect(alice).unstakeVotes(0, 1);
+        assert.equal(await staking.getStakersNumber(), 1);
+        assert.equal(await staking.getStakesNumber(alice.address), 0);
+
+        // after unstake
+        assert.equal(await votesToken.balanceOf(alice.address), 1000);
+        assert.equal(await voucherToken.balanceOf(alice.address), 1210);
+        await expect(staking.connect(alice).getVotesAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
+        await expect(staking.connect(alice).getVouchersAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
+
+        // bob was not hit
+        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await voucherToken.balanceOf(bob.address), 0);
+        assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
+        assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 886);
     });
 });

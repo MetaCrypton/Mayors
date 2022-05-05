@@ -114,7 +114,7 @@ async function main() {
     await marketplace.connect(admin).addToWhiteList([alice.address, bob.address]);
 
 
-    
+
     assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
     assert.equal(await token1.balanceOf(admin.address), 0);
 
