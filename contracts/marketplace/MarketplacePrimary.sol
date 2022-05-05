@@ -41,7 +41,15 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         _lootboxesBought[seasonId][msg.sender] += number;
         emit LootboxesSentInBatch(seasonId, recipient, address(_config.lootbox), number);
 
-        _config.lootbox.batchMint(number, seasonId, season.uri, recipient, season.lootboxesUnlockTimestamp);
+        _config.lootbox.batchMint(
+            number,
+            seasonId,
+            season.uri,
+            season.nftStartIndex,
+            season.nftNumberInLootbox,
+            season.lootboxesUnlockTimestamp,
+            recipient
+        );
     }
 
     function addToWhiteList(uint256 seasonId, address[] calldata participants) external override isOwner {
@@ -88,7 +96,14 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         _seasons[seasonId].lootboxesNumber--;
         _lootboxesBought[seasonId][msg.sender]++;
 
-        uint256 id = _config.lootbox.mint(seasonId, season.uri, msg.sender, season.lootboxesUnlockTimestamp);
+        uint256 id = _config.lootbox.mint(
+            seasonId,
+            season.uri,
+            season.nftStartIndex,
+            season.nftNumberInLootbox,
+            season.lootboxesUnlockTimestamp,
+            msg.sender
+        );
         emit LootboxBought(seasonId, msg.sender, address(_config.lootbox), id);
 
         _config.paymentTokenPrimary.transferFrom(msg.sender, _config.feeAggregator, season.lootboxPrice);
