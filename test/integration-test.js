@@ -130,7 +130,7 @@ describe("Integration", function() {
 
     it("Wallets and coder setup", async function() {
         coder = ethers.utils.defaultAbiCoder;
-        [admin, alice, bob, charlie] = await ethers.getSigners();
+        [admin, alice, bob, charlie, voting] = await ethers.getSigners();
     });
 
     it("Setup system", async function() {
@@ -199,6 +199,9 @@ describe("Integration", function() {
             admin.address,
         );
 
+        // TODO: deploy Voting contract
+        // ...
+
         // update configurations
         await lootbox.connect(admin).updateConfig(
             [
@@ -223,6 +226,12 @@ describe("Integration", function() {
         await voucherToken.connect(admin).updateConfig(
             [
                 staking.address,
+            ]
+        )
+        // TODO: use an address of voting contract after it will be written
+        await voteToken.connect(admin).updateConfig(
+            [
+                voting.address,
             ]
         )
     });
@@ -657,13 +666,21 @@ describe("Integration", function() {
     });
 
     it("Burn Votes", async function() {
+        // voting could burn votes
         assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 3300);
         assert.equal(await voteToken.totalSupply(), VOTES_MINT);
         await voteToken.connect(admin).burn(admin.address, 100);
         assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 3400);
         assert.equal(await voteToken.totalSupply(), VOTES_MINT - 100);
 
-        await expect(voteToken.connect(alice).burn(alice.address, 100)).to.be.revertedWith('NotOwner()');
-        await voteToken.connect(admin).burn(alice.address, 100);
+        // player mustn't burn votes
+        await expect(voteToken.connect(alice).burn(alice.address, 100)).to.be.revertedWith('NoPermission()');
+
+        // voting could burn votes
+        await voteToken.connect(admin).transfer(voting.address, 600);
+        await voteToken.connect(voting).burn(voting.address, 200);
+        assert.equal(await voteToken.balanceOf(voting.address), 400);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 4000);
+        assert.equal(await voteToken.totalSupply(), VOTES_MINT - 300);
     });
 });

@@ -4,10 +4,11 @@
 pragma solidity ^0.8.0;
 
 import "./VoteERC20.sol";
+import "./VoteConfiguration.sol";
 import "../common/erc20/ERC20.sol";
 import "../common/ownership/Ownable.sol";
 
-contract Vote is VoteERC20 {
+contract Vote is VoteERC20, VoteConfiguration {
     constructor(
         string memory name_,
         string memory symbol_,
