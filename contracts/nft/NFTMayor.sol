@@ -8,7 +8,6 @@ import "./NFTModifiers.sol";
 import "./interfaces/INFT.sol";
 import "./helpers/IRarityCalculator.sol";
 import "./common/NFTConstants.sol";
-import "../marketplace/common/MarketplaceStructs.sol";
 
 contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     function batchMint(

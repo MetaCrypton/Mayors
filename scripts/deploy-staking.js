@@ -13,8 +13,14 @@ async function main() {
     console.log("Accounts: ", admin.address, alice.address, bob.address, charlie.address);
     console.log("Account balance:", (await admin.getBalance()).toString());
 
-    voteToken = await deploy("Token", admin, "Vote token", "Vote", admin.address);
-    console.log("Vote token:", voteToken.address);
+    voteToken = await deploy(
+        "Vote",
+        admin,
+        "Votes token",
+        "Vote$",
+        admin.address,
+    );
+    console.log("Vote$ token:", voteToken.address);
 
     voucherToken = await deploy(
         "Voucher",
