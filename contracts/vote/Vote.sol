@@ -14,6 +14,6 @@ contract Vote is VoteERC20 {
         address owner
     ) VoteERC20(name_, symbol_) {
         _owner = owner;
-        _mint(owner, 1000000000);
+        _mint(owner, 10000000000000);
     }
 }

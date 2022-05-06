@@ -12,11 +12,11 @@ contract VoteERC20 is IVoteERC20, ERC20, Ownable {
     /**
      * @dev Burns tokens. See {ERC20-_burn}.
      */
-    function burn(address recipient, uint256 value) public override {
+    function burn(address recipient, uint256 value) public override isOwner {
         _burn(recipient, value);
     }
 
     function decimals() public pure override(ERC20, IERC20Metadata) returns (uint8) {
-        return 0;
+        return 4;
     }
 }

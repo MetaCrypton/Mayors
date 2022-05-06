@@ -20,7 +20,8 @@ describe("Integration", function() {
     const RESALE_INCOME = RESALE_PRICE - RESALE_FEE;
     const BOB_MINT = 10;
 
-    const VOTES_MINT = 1000000000;
+    const VOTES_MINT = 10000000000000;
+    const VOTES_DECIMALS = 4;
 
     const LOOTBOX_ID_0 = 0;
     const MAYOR_ID_0 = 0;
@@ -233,7 +234,7 @@ describe("Integration", function() {
     });
 
     it("Check Votes total supply", async function() {
-        assert.equal(await voteToken.totalSupply(), VOTES_MINT);
+        assert.equal(await voteToken.totalSupply() / (10**await voteToken.decimals()), VOTES_MINT/(10**VOTES_DECIMALS));
         assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT);
     });
 
@@ -661,5 +662,8 @@ describe("Integration", function() {
         await voteToken.connect(admin).burn(admin.address, 100);
         assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 3400);
         assert.equal(await voteToken.totalSupply(), VOTES_MINT - 100);
+
+        await expect(voteToken.connect(alice).burn(alice.address, 100)).to.be.revertedWith('NotOwner()');
+        await voteToken.connect(admin).burn(alice.address, 100);
     });
 });
