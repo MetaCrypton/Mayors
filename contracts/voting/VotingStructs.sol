@@ -22,7 +22,6 @@ struct City {
     uint256 population;
     uint256 votePrice;
     bool active;
-    uint256 bank;
 }
 
 struct NewCity {
@@ -38,10 +37,3 @@ struct Nominee {
     uint256 votes;
 }
 
-struct Win {
-    uint256 cityId;
-    uint256 bank;
-    uint256 season;
-    bool claimed;
-    // uint256 burnAmount;
-}
