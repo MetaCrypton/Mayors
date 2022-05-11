@@ -2,6 +2,7 @@
 // Copyright © 2022 Artem Belozerov. All rights reserved.
 pragma solidity ^0.8.0;
 
-interface IVoucherEvents {
-    event ConfigUpdated();
+library VoteErrors {
+    error SameConfig();
+    error NoPermission();
 }

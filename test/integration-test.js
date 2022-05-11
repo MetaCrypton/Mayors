@@ -20,6 +20,9 @@ describe("Integration", function() {
     const RESALE_INCOME = RESALE_PRICE - RESALE_FEE;
     const BOB_MINT = 10;
 
+    const VOTES_MINT = 10000000000000;
+    const VOTES_DECIMALS = 4;
+
     const LOOTBOX_ID_0 = 0;
     const MAYOR_ID_0 = 0;
     const MAYOR_ID_1 = 1;
@@ -79,10 +82,11 @@ describe("Integration", function() {
 
     let token1;
     let token2;
+    let rarityCalculator;
     let nft;
     let lootbox;
     let marketplace;
-    let votesToken;
+    let voteToken;
     let voucherToken;
     let staking;
 
@@ -126,14 +130,13 @@ describe("Integration", function() {
 
     it("Wallets and coder setup", async function() {
         coder = ethers.utils.defaultAbiCoder;
-        [admin, alice, bob, charlie] = await ethers.getSigners();
+        [admin, alice, bob, charlie, voting] = await ethers.getSigners();
     });
 
     it("Setup system", async function() {
         token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
         token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
-
-        const rarityCalculator = await deploy("RarityCalculator", admin);
+        rarityCalculator = await deploy("RarityCalculator", admin);
         nft = await deploy(
             "NFT",
             admin,
@@ -161,8 +164,13 @@ describe("Integration", function() {
             ],
             admin.address
         );
-        // TODO: change Token to Vote
-        votesToken = await deploy("Token", admin, "Votes token", "Vote$", admin.address);
+        voteToken = await deploy(
+            "Vote",
+            admin,
+            "Votes token",
+            "Vote$",
+            admin.address,
+        );
         voucherToken = await deploy(
             "Voucher",
             admin,
@@ -177,27 +185,24 @@ describe("Integration", function() {
             "Staking",
             admin,
             [
-                votesToken.address,
+                voteToken.address,
                 voucherToken.address,
             ],
             admin.address
         );
-        await voucherToken.connect(admin).updateConfig(
-            [
-                staking.address,
-            ]
-        )
-
         thriftbox = await deploy(
             "Thriftbox",
             admin,
             [
-                votesToken.address,
+                voteToken.address,
             ],
             admin.address,
         );
 
+        // TODO: deploy Voting contract
+        // ...
 
+        // update configurations
         await lootbox.connect(admin).updateConfig(
             [
                 marketplace.address,
@@ -212,19 +217,34 @@ describe("Integration", function() {
                 rarityCalculator.address
             ]
         );
-
         await marketplace.connect(admin).addNewSeasons(
             [
                 season1,
                 season2
             ]
         );
+        await voucherToken.connect(admin).updateConfig(
+            [
+                staking.address,
+            ]
+        )
+        // TODO: use an address of voting contract after it will be written
+        await voteToken.connect(admin).updateConfig(
+            [
+                voting.address,
+            ]
+        )
     });
 
-    it("Mint tokens", async function() {
+    it("Mint marketplace's tokens", async function() {
         await token1.connect(admin).mint(alice.address, ALICE_MINT);
         await token1.connect(admin).mint(bob.address, BOB_MINT);
         await token2.connect(admin).mint(charlie.address, CHARLIE_MINT);
+    });
+
+    it("Check Votes total supply", async function() {
+        assert.equal(await voteToken.totalSupply() / (10**await voteToken.decimals()), VOTES_MINT/(10**VOTES_DECIMALS));
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT);
     });
 
     it("Set eligibles for season 2", async function() {
@@ -434,13 +454,9 @@ describe("Integration", function() {
     });
 
     it("Deposit votes to thriftbox", async function() {
-        let deposit;
-
-        // mint votes for admin
-        await votesToken.connect(admin).mint(admin.address, 1000);
-        await votesToken.connect(admin).approve(thriftbox.address, 1000);
-        assert.equal(await votesToken.balanceOf(admin.address), 1000);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 0);
+        await voteToken.connect(admin).approve(thriftbox.address, 1000);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 0);
 
         // deposit Votes to players, twice
         await thriftbox.connect(admin).depositList([
@@ -453,8 +469,8 @@ describe("Integration", function() {
         ]);
 
         // check balances
-        assert.equal(await votesToken.balanceOf(admin.address), 200);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 800);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 800);
 
         assert.equal(await thriftbox.getWithdrawalDate(alice.address), 0);
         assert.equal(await thriftbox.balanceOf(alice.address), 500);
@@ -464,19 +480,18 @@ describe("Integration", function() {
     });
 
     it("Withdraw votes from thriftbox", async function() {
-        let deposit;
         let withdrawalDate1;
         let withdrawalDate2;
 
-        assert.equal(await votesToken.balanceOf(admin.address), 200);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 800);
-        assert.equal(await votesToken.balanceOf(alice.address), 0);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 800);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 800);
+        assert.equal(await voteToken.balanceOf(alice.address), 0);
 
         // withdraw and check balances
         await thriftbox.connect(alice).withdraw();
-        assert.equal(await votesToken.balanceOf(admin.address), 200);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
-        assert.equal(await votesToken.balanceOf(alice.address), 500);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 800);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await voteToken.balanceOf(alice.address), 500);
 
         // check deposit
         withdrawalDate1 = await thriftbox.getWithdrawalDate(alice.address);
@@ -495,9 +510,9 @@ describe("Integration", function() {
 
         // try to withdraw after 2 hours
         await expect(thriftbox.connect(alice).withdraw()).to.be.revertedWith('TooFrequentWithdrawals()');
-        assert.equal(await votesToken.balanceOf(admin.address), 100);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 400);
-        assert.equal(await votesToken.balanceOf(alice.address), 500);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 900);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 400);
+        assert.equal(await voteToken.balanceOf(alice.address), 500);
 
         // increase time
         const sevenDays = 7 * 24 * 60 * 60;
@@ -506,9 +521,9 @@ describe("Integration", function() {
 
         // try to withdraw after 7 days more
         await thriftbox.connect(alice).withdraw();
-        assert.equal(await votesToken.balanceOf(admin.address), 100);
-        assert.equal(await votesToken.balanceOf(thriftbox.address), 300);
-        assert.equal(await votesToken.balanceOf(alice.address), 600);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 900);
+        assert.equal(await voteToken.balanceOf(thriftbox.address), 300);
+        assert.equal(await voteToken.balanceOf(alice.address), 600);
 
         // check deposit
         withdrawalDate2 = await thriftbox.getWithdrawalDate(alice.address);
@@ -528,11 +543,11 @@ describe("Integration", function() {
         const twoHours = 2 * 60 * 60;
         const twoDays = 48 * 60 * 60 + 45 * 60;
 
-        // mint votes
-        await votesToken.connect(admin).mint(alice.address, 400);
-        await votesToken.connect(admin).mint(bob.address, 2000);
-        await votesToken.connect(alice).approve(staking.address, 1000);
-        await votesToken.connect(bob).approve(staking.address, 2000);
+        // transfer votes
+        await voteToken.connect(admin).transfer(alice.address, 400);
+        await voteToken.connect(admin).transfer(bob.address, 2000);
+        await voteToken.connect(alice).approve(staking.address, 1000);
+        await voteToken.connect(bob).approve(staking.address, 2000);
 
         // try to stake wrong amounts of votes
         await expect(staking.connect(alice).stakeVotes(15)).to.be.revertedWith('WrongMultiplicity()');
@@ -541,9 +556,9 @@ describe("Integration", function() {
         // stake votes
         await staking.connect(alice).stakeVotes(500);
         await staking.connect(bob).stakeVotes(700);
-        assert.equal(await votesToken.balanceOf(alice.address), 500);
-        assert.equal(await votesToken.balanceOf(bob.address), 1300);
-        assert.equal(await votesToken.balanceOf(staking.address), 1200);
+        assert.equal(await voteToken.balanceOf(alice.address), 500);
+        assert.equal(await voteToken.balanceOf(bob.address), 1300);
+        assert.equal(await voteToken.balanceOf(staking.address), 1200);
 
         // increase time and stake again
         const blockNum = await ethers.provider.getBlockNumber();
@@ -559,9 +574,9 @@ describe("Integration", function() {
         await staking.connect(alice).stakeVotes(100);
 
         // check balances
-        assert.equal(await votesToken.balanceOf(alice.address), 400);
-        assert.equal(await votesToken.balanceOf(bob.address), 1300);
-        assert.equal(await votesToken.balanceOf(staking.address), 1300);
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
+        assert.equal(await voteToken.balanceOf(bob.address), 1300);
+        assert.equal(await voteToken.balanceOf(staking.address), 1300);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
 
@@ -584,7 +599,7 @@ describe("Integration", function() {
 
     it("Withdraw vouchers", async function() {
         // check balances
-        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 500);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 461);
@@ -599,7 +614,7 @@ describe("Integration", function() {
         await staking.connect(admin).withdrawVouchers(alice.address, 0, 2);
 
         // check balances after withdraw
-        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 961);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 0);
@@ -613,7 +628,7 @@ describe("Integration", function() {
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
 
         // bob without any changes
-        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await voteToken.balanceOf(bob.address), 1300);
         assert.equal(await voucherToken.balanceOf(bob.address), 0);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
         // (700 staked votes / 500) * (152 hours / 24 hours)
@@ -622,7 +637,7 @@ describe("Integration", function() {
 
     it("Unstake votes", async function() {
         // before unstake
-        assert.equal(await votesToken.balanceOf(alice.address), 400);
+        assert.equal(await voteToken.balanceOf(alice.address), 400);
         assert.equal(await voucherToken.balanceOf(alice.address), 961);
         assert.equal(await staking.connect(alice).getVotesAmount(0, 2), 600);
         assert.equal(await staking.connect(alice).getVouchersAmount(0, 2), 249);
@@ -638,15 +653,34 @@ describe("Integration", function() {
         assert.equal(await staking.getStakesNumber(alice.address), 0);
 
         // after unstake
-        assert.equal(await votesToken.balanceOf(alice.address), 1000);
+        assert.equal(await voteToken.balanceOf(alice.address), 1000);
         assert.equal(await voucherToken.balanceOf(alice.address), 1210);
         await expect(staking.connect(alice).getVotesAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
         await expect(staking.connect(alice).getVouchersAmount(0, 2)).to.be.revertedWith('WrongEndIndex()');
 
         // bob was not hit
-        assert.equal(await votesToken.balanceOf(bob.address), 1300);
+        assert.equal(await voteToken.balanceOf(bob.address), 1300);
         assert.equal(await voucherToken.balanceOf(bob.address), 0);
         assert.equal(await staking.connect(bob).getVotesAmount(0, 1), 700);
         assert.equal(await staking.connect(bob).getVouchersAmount(0, 1), 886);
+    });
+
+    it("Burn Votes", async function() {
+        // voting could burn votes
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 3300);
+        assert.equal(await voteToken.totalSupply(), VOTES_MINT);
+        await voteToken.connect(admin).burn(admin.address, 100);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 3400);
+        assert.equal(await voteToken.totalSupply(), VOTES_MINT - 100);
+
+        // player mustn't burn votes
+        await expect(voteToken.connect(alice).burn(alice.address, 100)).to.be.revertedWith('NoPermission()');
+
+        // voting could burn votes
+        await voteToken.connect(admin).transfer(voting.address, 600);
+        await voteToken.connect(voting).burn(voting.address, 200);
+        assert.equal(await voteToken.balanceOf(voting.address), 400);
+        assert.equal(await voteToken.balanceOf(admin.address), VOTES_MINT - 4000);
+        assert.equal(await voteToken.totalSupply(), VOTES_MINT - 300);
     });
 });

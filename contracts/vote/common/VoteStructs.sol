@@ -2,6 +2,6 @@
 // Copyright © 2022 Artem Belozerov. All rights reserved.
 pragma solidity ^0.8.0;
 
-interface IVoucherEvents {
-    event ConfigUpdated();
+struct VoteConfig {
+    address votingAddress;
 }

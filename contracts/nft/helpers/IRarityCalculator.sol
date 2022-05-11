@@ -4,7 +4,6 @@
 pragma solidity ^0.8.0;
 
 import "../common/NFTStructs.sol";
-import "../../marketplace/common/MarketplaceStructs.sol";
 
 interface IRarityCalculator {
     function calculateRarityAndHashrate(
