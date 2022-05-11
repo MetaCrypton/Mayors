@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import "./VoteERC20.sol";
 import "./VoteConfiguration.sol";
+import "./common/VoteConstants.sol";
 import "../common/erc20/ERC20.sol";
 import "../common/ownership/Ownable.sol";
 
@@ -15,6 +16,6 @@ contract Vote is VoteERC20, VoteConfiguration {
         address owner
     ) VoteERC20(name_, symbol_) {
         _owner = owner;
-        _mint(owner, 10000000000000);
+        _mint(owner, VoteConstants.TOTAL_SUPPLY);
     }
 }

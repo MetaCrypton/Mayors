@@ -2,6 +2,7 @@
 // Copyright © 2022 Artem Belozerov. All rights reserved.
 pragma solidity ^0.8.0;
 import "./VoteModifiers.sol";
+import "./common/VoteConstants.sol";
 import "./interfaces/IVoteERC20.sol";
 import "../common/erc20/ERC20.sol";
 import "../common/ownership/Ownable.sol";
@@ -17,6 +18,6 @@ contract VoteERC20 is IVoteERC20, ERC20, Ownable, VoteModifiers {
     }
 
     function decimals() public pure override(ERC20, IERC20Metadata) returns (uint8) {
-        return 4;
+        return VoteConstants.DECIMAL;
     }
 }
