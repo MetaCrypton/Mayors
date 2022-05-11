@@ -25,7 +25,6 @@ struct City {
 }
 
 struct NewCity {
-    uint256 id;
     string name;
     uint256 population;
     uint256 votePrice;

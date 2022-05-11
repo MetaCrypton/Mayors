@@ -6,16 +6,17 @@ pragma solidity ^0.8.0;
 import "./VotingStructs.sol";
 
 interface IVoting {
-    event CitiesAdded(uint256 regionId, uint256[] newCities);
-    event VotePriceUpdated(uint256 cityId, uint256 oldPrice, uint256 newPrice);
-    event VotingStarted(uint256 regionId, uint256 endVotingTimestamp);
-    event BuildingAdded(Building newBuilding, uint256 cityId, address owner);
-    event CandidateAdded(uint256 mayorId, uint256 cityId, uint256 votes);
-    event CitiesUpdated(uint256[] updatedCities, bool isOpen);
+    event CitiesAdded(uint256 indexed regionId, uint256[] newCities);
+    event VotePriceUpdated(uint256 indexed cityId, uint256 oldPrice, uint256 newPrice);
+    event VotingStarted(uint256 indexed regionId, uint256 endVotingTimestamp);
+    event BuildingAdded(Building newBuilding, uint256 indexed cityId, address indexed owner);
+    event CandidateAdded(uint256 indexed mayorId, uint256 indexed cityId, uint256 votes);
+    event CityUpdated(uint256 indexed cityId, bool isOpen);
     event RegionsUpdated(uint256[] updatedRegions, bool isOpen);
-    event WinnersChosen(uint256 regionId);
     event PrizeClaimed(address account, uint256 amount);
     event VotesPerCitizenUpdated(uint256 oldAmount, uint256 amount);
+
+    function transferTokens(address recipient) external;
 
     function changeVotesPerCitizen(uint256 amount) external;
 
@@ -36,8 +37,6 @@ interface IVoting {
     ) external;
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external;
-
-    function updateRegions(uint256[] calldata regionsIds, bool isOpen) external;
 
     function claimPrize(uint256 cityId, uint256 season) external;
 

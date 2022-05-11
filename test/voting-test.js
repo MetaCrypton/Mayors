@@ -182,22 +182,22 @@ describe("Voting", function() {
 
     it("Adds new cities and starts voting", async function() {
         let region1Cities = [
-            {"id": 0, "name": "Test 0", "population": 1000000, "votePrice": 100},
-            {"id": 2, "name": "Test 2", "population": 1500000, "votePrice": 300},
-            {"id": 3, "name": "Test 3", "population": 30000, "votePrice": 400},
+            {"name": "Test 0", "population": 1000000, "votePrice": 100},
+            {"name": "Test 1", "population": 100000, "votePrice": 200},
+            {"name": "Test 2", "population": 1500000, "votePrice": 300},
         ];
         let region2Cities = [
-            {"id": 1, "name": "Test 1", "population": 100000, "votePrice": 200},
+            {"name": "Test 3", "population": 30000, "votePrice": 400},
         ];
 
         let region1Cities2 = [
-            {"id": 4, "name": "Test 4", "population": 40000, "votePrice": 500},
-            {"id": 5, "name": "Test 5", "population": 50000, "votePrice": 600},
+            {"name": "Test 4", "population": 40000, "votePrice": 500},
+            {"name": "Test 5", "population": 50000, "votePrice": 600},
         ];
 
-        await expect(voting.connect(admin).addCities(0, region1Cities)).to.emit(voting, "CitiesAdded").withArgs(0, [0, 2, 3]);
+        await expect(voting.connect(admin).addCities(0, region1Cities)).to.emit(voting, "CitiesAdded").withArgs(0, [0, 1, 2]);
+        await expect(voting.connect(admin).addCities(1, region2Cities)).to.emit(voting, "CitiesAdded").withArgs(1, [3]);
         await expect(voting.connect(admin).addCities(0, region1Cities2)).to.emit(voting, "CitiesAdded").withArgs(0, [4, 5]);
-        await expect(voting.connect(admin).addCities(1, region2Cities)).to.emit(voting, "CitiesAdded").withArgs(1, [1]);
         
     });
 
@@ -234,6 +234,10 @@ describe("Voting", function() {
     it("Does not allow to nominate candidate without enough tokens", async function() {
         let votesAmount = 100;
         await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.be.revertedWith("InsufficientBalance");
+    });
+
+    it("Does not close cities during voting", async function() {
+        await expect(voting.connect(admin).updateCities([2, 3, 1], false)).to.be.revertedWith("IncorrectPeriod");
     });
 
     it("Allows to nominate candidate", async function() {
@@ -285,7 +289,9 @@ describe("Voting", function() {
     });
 
     it("Closes cities", async function() {
-        await expect(voting.connect(admin).updateCities([2, 3], false)).to.emit(voting, "CitiesUpdated").withArgs([2, 3], false);
+        await expect(voting.connect(admin).updateCities([2, 3], false))
+            .to.emit(voting, "CityUpdated").withArgs(2, false)
+            .to.emit(voting, "CityUpdated").withArgs(3, false);
     });
 
     it("Does not allow to nominate candidate to the non-active city", async function() {
@@ -367,6 +373,19 @@ describe("Voting", function() {
         await expect(voting.connect(alice).calculatePrize(0, 2)).to.be.revertedWith("IncorrectPeriod");
     });
 
+    it("Does not change votes price during election", async function() {
+        let newVotePrice = 200;
+        await expect(voting.connect(admin).changeCityVotePrice(0, newVotePrice)).to.be.revertedWith("IncorrectPeriod");
+    });
+
+    it("Chooses winners in the region with closed cities", async function() {
+        await voteToken.connect(admin).transfer(alice.address, ALICE_VOTE_MINT);
+        await voteToken.connect(alice).approve(voting.address, ALICE_VOTE_MINT);
+        let votesAmount = 200;
+        await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 0, votesAmount);
+        await ethers.provider.send('evm_increaseTime', [votingDuration]);
+    });
+
     it("Does not change votes price for the incorrect city", async function() {
         let newVotePrice = 200;
         await expect(voting.connect(admin).changeCityVotePrice(666, newVotePrice)).to.be.revertedWith("IncorrectValue");
@@ -378,21 +397,8 @@ describe("Voting", function() {
     });
 
     it("Changes votes price for the city", async function() {
-        let votesAmount = 100;
-        let rarity = await nft.getRarity(mayorId);
-        let genVotesDiscount = await genVoteDiscount(rarity);
         let newVotePrice = 200;
         await expect(voting.connect(admin).changeCityVotePrice(0, newVotePrice)).to.emit(voting, "VotePriceUpdated").withArgs(0, 100, newVotePrice);
-        let expectedPrice = BigInt(votesAmount * newVotePrice * (100 - genVotesDiscount - 7) / 100);
-        expect(await voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.equal(expectedPrice);
-    });
-
-    it("Chooses winners in the region with closed cities", async function() {
-        await voteToken.connect(admin).transfer(alice.address, ALICE_VOTE_MINT);
-        await voteToken.connect(alice).approve(voting.address, ALICE_VOTE_MINT);
-        let votesAmount = 200;
-        await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 0, votesAmount);
-        await ethers.provider.send('evm_increaseTime', [votingDuration]);
     });
 
     it("Does not add a building with non-mayor NFT", async function() {
@@ -401,10 +407,6 @@ describe("Voting", function() {
 
     it("Does not calculate prize during governance period", async function() {
         await expect(voting.connect(alice).calculatePrize(0, 2)).to.be.revertedWith("IncorrectPeriod");
-    });
-
-    it("Closes regions", async function() {
-        await expect(voting.connect(admin).updateRegions([1], false)).to.emit(voting, "RegionsUpdated").withArgs([1], false);
     });
 
     // season 3
@@ -429,5 +431,15 @@ describe("Voting", function() {
         let expectedPrize5 = BigInt(votesAmount * 87 / 100);
         expect(await voting.connect(alice).calculatePrize(4, 3)).to.be.equal(expectedPrize4);
         expect(await voting.connect(alice).calculatePrize(5, 3)).to.be.equal(expectedPrize5);
+    });
+
+    it("Transfer tokens to recipient", async function() {
+        let voteBalance = await voteToken.balanceOf(voting.address);
+        let voucherBalance = await voucherToken.balanceOf(voting.address);
+        await expect(voting.connect(admin).transferTokens(bob.address))
+            .to.emit(voteToken, "Transfer").withArgs(voting.address, bob.address, voteBalance)
+            .to.emit(voucherToken, "Transfer").withArgs(voting.address, bob.address, voucherBalance);
+        expect(await await voteToken.balanceOf(bob.address)).to.be.equal(voteBalance);
+        expect(await await voucherToken.balanceOf(bob.address)).to.be.equal(voucherBalance);
     });
 });
