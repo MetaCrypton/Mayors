@@ -12,10 +12,11 @@ describe("Voting", function() {
     const votingDuration = 86400;
     const governanceDuration = 86400 * 5; // 5 days
     const claimingDuration = 86400;
+    const VOTES_PER_CITIZEN = 100;
     const BASE_URI = "https://baseuri.io";
     const NUMBER_IN_LOOTBOXES = 20;
     const ALICE_MINT = 100;
-    const ALICE_VOTE_MINT = BigInt(1000000 * ethers.utils.parseEther("0.001"));
+    const ALICE_VOTE_MINT = BigInt(1000 * 10 ** 4);
     const ALICE_VOUCHER_MINT = 230000;
     const LOOTBOXES_BATCH = 1497;
     const SEASON_ID_1 = 0;
@@ -68,6 +69,8 @@ describe("Voting", function() {
             lootboxPrice: 100,
             lootboxesPerAddress: 3,
             lootboxesUnlockTimestamp: 0,
+            nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+            nftStartIndex: 0,
             merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
             isPublic: true,
             uri: "season1"
@@ -80,6 +83,8 @@ describe("Voting", function() {
             lootboxPrice: 100,
             lootboxesPerAddress: LOOTBOXES_BATCH,
             lootboxesUnlockTimestamp: 0,
+            nftNumberInLootbox: NUMBER_IN_LOOTBOXES,
+            nftStartIndex: NUMBER_IN_LOOTBOXES * season1.lootboxesNumber,
             merkleRoot: "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80",
             isPublic: true,
             uri: "season2"
@@ -89,8 +94,15 @@ describe("Voting", function() {
 
         token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
         token2 = await deploy("Token", admin, "Payment token 2", "PTN2", admin.address);
-        voteToken = await deploy("Token", admin, "Votes token", "VOTE", admin.address);
-        voucherToken = await deploy("Token", admin, "BVoucher token", "BVOUCHER", admin.address);
+        voteToken = await deploy("Vote", admin, "Votes token", "VOTE", admin.address);
+        voucherToken = await deploy(
+            "Voucher",
+            admin,
+            "BVoucher token",
+            "BVOUCHER",
+            [ethers.constants.AddressZero],
+            admin.address
+        );
 
         const rarityCalculator = await deploy("RarityCalculator", admin);
         nft = await deploy(
@@ -106,7 +118,6 @@ describe("Voting", function() {
             admin,
             "Lootboxes",
             "LBS",
-            "",
             admin.address
         );
         marketplace = await deploy(
@@ -119,25 +130,26 @@ describe("Voting", function() {
                 token2.address,
                 admin.address,
             ],
-            [
-                season1,
-                season2
-            ],
             admin.address
         );
-
         await lootbox.connect(admin).updateConfig(
             [
-                NUMBER_IN_LOOTBOXES,
                 marketplace.address,
                 nft.address
-            ]
+            ],
+            "http://www.lootbox.json",
         );
         await nft.connect(admin).updateConfig(
             [
                 lootbox.address,
                 admin.address,
                 rarityCalculator.address
+            ]
+        );
+        await marketplace.connect(admin).addNewSeasons(
+            [
+                season1,
+                season2
             ]
         );
 
@@ -151,8 +163,13 @@ describe("Voting", function() {
         mayorId = 0;
         mayorId2 = 1;
         mayorId3 = 2;
-        voting = await deploy("Voting", admin, nft.address, voteToken.address, voucherToken.address, admin.address);
+        voting = await deploy("Voting", admin, nft.address, voteToken.address, voucherToken.address, VOTES_PER_CITIZEN, admin.address);
 
+        await voteToken.connect(admin).updateConfig(
+            [
+                voting.address,
+            ]
+        )
         await voteToken.connect(alice).approve(voting.address, ALICE_VOTE_MINT);
         await voucherToken.connect(alice).approve(voting.address, ALICE_VOUCHER_MINT);
     });
@@ -165,17 +182,17 @@ describe("Voting", function() {
 
     it("Adds new cities and starts voting", async function() {
         let region1Cities = [
-            {"id": 0, "name": "Test 0", "population": 1000000, "votePrice": ethers.utils.parseEther("0.001")},
-            {"id": 2, "name": "Test 2", "population": 1500000, "votePrice": ethers.utils.parseEther("0.003")},
-            {"id": 3, "name": "Test 3", "population": 30000, "votePrice": ethers.utils.parseEther("0.004")},
+            {"id": 0, "name": "Test 0", "population": 1000000, "votePrice": 100},
+            {"id": 2, "name": "Test 2", "population": 1500000, "votePrice": 300},
+            {"id": 3, "name": "Test 3", "population": 30000, "votePrice": 400},
         ];
         let region2Cities = [
-            {"id": 1, "name": "Test 1", "population": 100000, "votePrice": ethers.utils.parseEther("0.002")},
+            {"id": 1, "name": "Test 1", "population": 100000, "votePrice": 200},
         ];
 
         let region1Cities2 = [
-            {"id": 4, "name": "Test 4", "population": 40000, "votePrice": ethers.utils.parseEther("0.005")},
-            {"id": 5, "name": "Test 5", "population": 50000, "votePrice": ethers.utils.parseEther("0.006")},
+            {"id": 4, "name": "Test 4", "population": 40000, "votePrice": 500},
+            {"id": 5, "name": "Test 5", "population": 50000, "votePrice": 600},
         ];
 
         await expect(voting.connect(admin).addCities(0, region1Cities)).to.emit(voting, "CitiesAdded").withArgs(0, [0, 2, 3]);
@@ -191,7 +208,7 @@ describe("Voting", function() {
 
     it("Calculating votes price for the mayor without discounts", async function() {
         let votesAmount = 100;
-        let expectedPrice = BigInt(votesAmount * ethers.utils.parseEther("0.001"));
+        let expectedPrice = BigInt(votesAmount * 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.equal(expectedPrice);
     });
 
@@ -200,13 +217,12 @@ describe("Voting", function() {
     });
 
     it("Sets up the amount of votes per citizens", async function() {
-        let votesAmount = 1000000;
-        let expectedPrice = BigInt(votesAmount * ethers.utils.parseEther("0.001"));
+        let votesAmount = 10000;
+        let expectedPrice = BigInt(votesAmount * 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.equal(expectedPrice);
 
-        let currentAmount = ethers.utils.parseEther("1");
-        let newAmount = BigInt(currentAmount / 2);
-        expect(await voting.connect(admin).changeVotesPerCitizen(newAmount)).to.emit(voting, "VotesPerCitizenUpdated").withArgs(currentAmount, newAmount);
+        let newAmount = BigInt(VOTES_PER_CITIZEN / 2);
+        expect(await voting.connect(admin).changeVotesPerCitizen(newAmount)).to.emit(voting, "VotesPerCitizenUpdated").withArgs(VOTES_PER_CITIZEN, newAmount);
         await expect(voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.revertedWith("VotesBankExceeded");
     });
 
@@ -221,8 +237,8 @@ describe("Voting", function() {
     });
 
     it("Allows to nominate candidate", async function() {
-        await voteToken.connect(admin).mint(alice.address, ALICE_VOTE_MINT);
-        let votesAmount = 20000;
+        await voteToken.connect(admin).transfer(alice.address, ALICE_VOTE_MINT);
+        let votesAmount = 200;
         await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 0, votesAmount);
         await expect(voting.connect(alice).nominate(mayorId2, 0, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId2, 0, votesAmount);
         await expect(voting.connect(alice).nominate(mayorId3, 2, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId3, 2, votesAmount);
@@ -291,7 +307,7 @@ describe("Voting", function() {
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send("evm_mine");
-        let expectedPrize = BigInt(40000 * (87 + 7) / 100);
+        let expectedPrize = BigInt(400 * (87 + 7) / 100);
         expect(await voting.connect(alice).calculatePrize(0, 1)).to.be.equal(expectedPrize);
     });
 
@@ -303,10 +319,15 @@ describe("Voting", function() {
     it("Claiming prize after governance period", async function() {
         let expectedPrize0 = await voting.connect(alice).calculatePrize(0, 1);
         let expectedPrize2 = await voting.connect(alice).calculatePrize(2, 1);
+        let totalexpected = expectedPrize0.add(expectedPrize2);
         let aliceBalance = await voteToken.balanceOf(alice.address);
-        await expect(voting.connect(alice).claimPrize(0, 1)).to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize0);
+        let votingBalance = await voteToken.balanceOf(voting.address);
+        await expect(voting.connect(alice).claimPrize(0, 1))
+            .to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize0)
+            .to.emit(voteToken, "Transfer").withArgs(voting.address, ethers.constants.AddressZero, 400 * 0.03);
         await expect(voting.connect(alice).claimPrize(2, 1)).to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize2);
-        expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance.add(expectedPrize0.add(expectedPrize2)));
+        expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance.add(totalexpected));
+        expect(await voteToken.balanceOf(voting.address)).to.be.equal(votingBalance.sub(totalexpected.add(400 * 0.03 * 2)));
     });
 
     it("Calculating prize for the non-winner", async function() {
@@ -333,12 +354,12 @@ describe("Voting", function() {
         
         let rarity = await nft.getRarity(mayorId);
         let genVotesDiscount = await genVoteDiscount(rarity);
-        let expectedPrice = BigInt(votesAmount * ethers.utils.parseEther("0.001") * (100 - genVotesDiscount - 7) / 100);
+        let expectedPrice = BigInt(votesAmount * 100 * (100 - genVotesDiscount - 7) / 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.equal(expectedPrice);
 
         rarity = await nft.getRarity(mayorId3);
         genVotesDiscount = 0;
-        expectedPrice = BigInt(votesAmount * ethers.utils.parseEther("0.003") * (100 - genVotesDiscount - 5) / 100);
+        expectedPrice = BigInt(votesAmount * 300 * (100 - genVotesDiscount - 5) / 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId3, 2, votesAmount)).to.be.equal(expectedPrice);
     });
 
@@ -347,7 +368,7 @@ describe("Voting", function() {
     });
 
     it("Does not change votes price for the incorrect city", async function() {
-        let newVotePrice = ethers.utils.parseEther("0.002");
+        let newVotePrice = 200;
         await expect(voting.connect(admin).changeCityVotePrice(666, newVotePrice)).to.be.revertedWith("IncorrectValue");
     });
 
@@ -360,14 +381,14 @@ describe("Voting", function() {
         let votesAmount = 100;
         let rarity = await nft.getRarity(mayorId);
         let genVotesDiscount = await genVoteDiscount(rarity);
-        let newVotePrice = ethers.utils.parseEther("0.002");
-        await expect(voting.connect(admin).changeCityVotePrice(0, newVotePrice)).to.emit(voting, "VotePriceUpdated").withArgs(0, ethers.utils.parseEther("0.001"), newVotePrice);
+        let newVotePrice = 200;
+        await expect(voting.connect(admin).changeCityVotePrice(0, newVotePrice)).to.emit(voting, "VotePriceUpdated").withArgs(0, 100, newVotePrice);
         let expectedPrice = BigInt(votesAmount * newVotePrice * (100 - genVotesDiscount - 7) / 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.equal(expectedPrice);
     });
 
     it("Chooses winners in the region with closed cities", async function() {
-        await voteToken.connect(admin).mint(alice.address, ALICE_VOTE_MINT);
+        await voteToken.connect(admin).transfer(alice.address, ALICE_VOTE_MINT);
         await voteToken.connect(alice).approve(voting.address, ALICE_VOTE_MINT);
         let votesAmount = 200;
         await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 0, votesAmount);

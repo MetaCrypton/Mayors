@@ -5,7 +5,8 @@ pragma solidity ^0.8.0;
 
 import "../common/ownership/Ownable.sol";
 import "../nft/NFT.sol";
-import "../token/Token.sol";
+import "../vote/Vote.sol";
+import "../voucher/Voucher.sol";
 import "./IVoting.sol";
 import "./VotingConstants.sol";
 import "./VotingStructs.sol";
@@ -13,8 +14,8 @@ import "./VotingErrors.sol";
 
 contract Voting is IVoting, Ownable {
     NFT public mayor;
-    Token public votesToken;
-    Token public voucherToken;
+    Vote public voteToken;
+    Voucher public voucherToken;
 
     uint256 internal constant VOTING_DURATION = 86400; //24 hours in seconds
     uint256 internal constant GOVERNANCE_DURATION = 86400 * 5; //5 days in seconds
@@ -23,8 +24,9 @@ contract Voting is IVoting, Ownable {
     uint256 internal constant PRIZE_RATE = 87;
     uint256 internal constant REWARD_BURN_RATE = 3;
 
-    // amount of votes for 1 citizen, 18 digits
-    uint256 public votesPerCitizen = 1 ether;
+    // amount of votes for 1 citizen, 4 digits
+    uint256 public votesPerCitizen;
+    uint256 internal _voteDigits;
 
     // city id => City
     mapping(uint256 => City) internal _cities;
@@ -46,14 +48,17 @@ contract Voting is IVoting, Ownable {
 
     constructor(
         NFT mayorNFT,
-        Token votesToken_,
-        Token voucherToken_,
+        Vote voteToken_,
+        Voucher voucherToken_,
+        uint256 votesPerCitizen_,
         address owner
     ) {
         mayor = mayorNFT;
-        votesToken = votesToken_;
+        voteToken = voteToken_;
         voucherToken = voucherToken_;
+        votesPerCitizen = votesPerCitizen_;
         _owner = owner;
+        _voteDigits = voteToken.decimals();
     }
 
     function changeVotesPerCitizen(uint256 amount) external override isOwner {
@@ -124,14 +129,14 @@ contract Voting is IVoting, Ownable {
         // get the price of those votes
         uint256 priceInVotes = _calculateVotesPrice(mayorId, cityId, votes);
         // check if msg.sender has enough Token balance: balanceOf(msg.sender) >= votes
-        if (votesToken.balanceOf(msg.sender) < priceInVotes) revert VotingErrors.InsufficientBalance();
+        if (voteToken.balanceOf(msg.sender) < priceInVotes) revert VotingErrors.InsufficientBalance();
         // save user vote info
         _cityToNominees[cityId][_seasonNumber(_cities[cityId].regionId) + 1].push(
             Nominee({ mayorId: mayorId, votes: votes })
         );
         emit CandidateAdded(mayorId, cityId, votes);
         // transfer the "votes" amount from user to reward pool
-        votesToken.transferFrom(msg.sender, address(this), priceInVotes);
+        voteToken.transferFrom(msg.sender, address(this), priceInVotes);
     }
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external override isOwner {
@@ -159,13 +164,12 @@ contract Voting is IVoting, Ownable {
             // send tokens to the winner
             if (prize > 0 && !_ownerClaims[msg.sender][cityId][season]) {
                 _ownerClaims[msg.sender][cityId][season] = true;
-                votesToken.transfer(msg.sender, prize);
+                voteToken.transfer(msg.sender, prize);
                 emit PrizeClaimed(msg.sender, prize);
 
-                // TODO: 3% needs to be burned
-                // votesToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
+                // 3% needs to be burned
+                voteToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
             }
-            
         }
     }
 
@@ -189,6 +193,7 @@ contract Voting is IVoting, Ownable {
             );
             return !_ownerClaims[msg.sender][cityId][season] ? prize : 0;
         }
+        return 0;
     }
 
     function _startVoting(uint256 regionId) internal {
@@ -236,7 +241,7 @@ contract Voting is IVoting, Ownable {
         if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         Nominee[] memory nominees = _cityToNominees[cityId][_seasonNumber(_cities[cityId].regionId) + 1];
         if(
-            votes > ((_cities[cityId].population * votesPerCitizen / 1 ether) - _getBank(nominees))
+            votes > ((_cities[cityId].population * votesPerCitizen / 10 ** _voteDigits) - _getBank(nominees))
         ) revert VotingErrors.VotesBankExceeded();
         return (votes * _cities[cityId].votePrice * _getVoteMultiplier(mayorId, cityId, msg.sender)) / 100;
     }
@@ -264,9 +269,9 @@ contract Voting is IVoting, Ownable {
         uint256 cityId
     ) internal view returns(uint256) {
         Nominee[] memory nominees = _cityToNominees[cityId][season];
+        if (nominees.length == 0) revert VotingErrors.IncorrectValue();
         uint256 random = uint256(keccak256(abi.encodePacked(season, cityId)));
         uint256 bank = _getBank(nominees);
-        if (bank == 0) revert VotingErrors.IncorrectValue();
 
         uint256 winnerRate = random % bank;
         uint256 votesCounter = 0;
@@ -311,7 +316,6 @@ contract Voting is IVoting, Ownable {
     }
 
     function _calculatePrizeToBurn(uint256 cityId, uint256 season) internal view returns(uint256) {
-        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         return _getBank(_cityToNominees[cityId][season]) * REWARD_BURN_RATE / 100;
     }
 

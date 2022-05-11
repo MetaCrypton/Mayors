@@ -8,7 +8,7 @@ async function deploy(contractName, signer, ...args) {
 }
 
 async function main() {
-    const [admin, alice, bob, charlie, voting] = await ethers.getSigners();
+    const [admin, alice, bob, charlie] = await ethers.getSigners();
     console.log("Deploying contracts with the account:", admin.address);
     console.log("Accounts: ", admin.address, alice.address, bob.address, charlie.address);
     console.log("Account balance:", (await admin.getBalance()).toString());
@@ -45,15 +45,24 @@ async function main() {
     );
     console.log("Staking:", staking.address);
 
-    // TODO: deploy Voting contract
-    console.log("Voting(mocked):", voting.address);
+    const nftAddress = process.env.NFT || "";
+    const voting = await deploy(
+        "Voting",
+        admin,
+        nftAddress,
+        voteToken.address,
+        voucherToken.address,
+        process.env.VOTES_PER_CITIZEN,
+        admin.address
+    );
+    await voting.deployed();
+    console.log("Voting:", voting.address);
 
     await voucherToken.connect(admin).updateConfig(
         [
             staking.address,
         ]
     )
-    // TODO: use an address of voting contract after it will be written
     await voteToken.connect(admin).updateConfig(
         [
             voting.address,
