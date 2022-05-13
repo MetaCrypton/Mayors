@@ -75,7 +75,7 @@ describe("Voting", function() {
             isPublic: true,
             uri: "season1"
         };
-    
+
         let season2 = {
             startTimestamp: 0,
             endTimestamp: 0,
@@ -198,12 +198,7 @@ describe("Voting", function() {
         await expect(voting.connect(admin).addCities(0, region1Cities)).to.emit(voting, "CitiesAdded").withArgs(0, [0, 1, 2]);
         await expect(voting.connect(admin).addCities(1, region2Cities)).to.emit(voting, "CitiesAdded").withArgs(1, [3]);
         await expect(voting.connect(admin).addCities(0, region1Cities2)).to.emit(voting, "CitiesAdded").withArgs(0, [4, 5]);
-        
-    });
 
-    it("Does not calculate votes price for the mayor nore than maximum city bank", async function() {
-        let votesAmount = 10000000;
-        await expect(voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.revertedWith("VotesBankExceeded");
     });
 
     it("Calculating votes price for the mayor without discounts", async function() {
@@ -223,17 +218,16 @@ describe("Voting", function() {
 
         let newAmount = BigInt(VOTES_PER_CITIZEN / 2);
         expect(await voting.connect(admin).changeVotesPerCitizen(newAmount)).to.emit(voting, "VotesPerCitizenUpdated").withArgs(VOTES_PER_CITIZEN, newAmount);
-        await expect(voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.revertedWith("VotesBankExceeded");
     });
 
     it("Does not allow to nominate candidate by the non NFT owner", async function() {
         let votesAmount = 100;
         await expect(voting.connect(admin).nominate(mayorId, 0, votesAmount)).to.be.revertedWith("WrongMayor");
     });
-    
+
     it("Does not allow to nominate candidate without enough tokens", async function() {
         let votesAmount = 100;
-        await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.be.revertedWith("InsufficientBalance");
+        await expect(voting.connect(alice).nominate(mayorId, 0, votesAmount)).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
 
     it("Does not close cities during voting", async function() {
@@ -253,15 +247,10 @@ describe("Voting", function() {
         await expect(voting.connect(alice).addBuilding(0, mayorId2, BUILDINGS.Hospital)).to.be.revertedWith("IncorrectPeriod");
     });
 
-    it("Does not calculate votes price for the mayor after election", async function() {
+    it("Does not add a building by the non NFT owner", async function() {
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + votingDuration]);
         await ethers.provider.send("evm_mine");
-        let votesAmount = 100;
-        await expect(voting.connect(alice).calculateVotesPrice(mayorId, 0, votesAmount)).to.be.revertedWith("IncorrectPeriod");
-    });
-
-    it("Does not add a building by the non NFT owner", async function() {
         await expect(voting.connect(admin).addBuilding(0, mayorId, BUILDINGS.Hospital)).to.be.revertedWith("WrongMayor");
     });
 
@@ -317,8 +306,8 @@ describe("Voting", function() {
         expect(await voting.connect(alice).calculatePrize(0, 1)).to.be.equal(expectedPrize);
     });
 
-    it("Does not calculate prize for the city with no winners", async function() {
-        await expect(voting.connect(alice).calculatePrize(10, 1)).to.be.revertedWith("IncorrectValue");
+    it("Does not calculate prize for unknown city", async function() {
+        await expect(voting.connect(alice).calculatePrize(10, 1)).to.be.revertedWith("UnknownCity");
     });
 
 
@@ -337,19 +326,11 @@ describe("Voting", function() {
     });
 
     it("Calculating prize for the non-winner", async function() {
-        expect(await voting.connect(admin).calculatePrize(0, 1)).to.be.equal(0);
-    });
-
-    it("Claiming prize for the non-winner", async function() {
-        let adminBalance = await voteToken.balanceOf(admin.address);
-        await voting.connect(admin).claimPrize(0, 1);
-        expect(await voteToken.balanceOf(admin.address)).to.be.equal(adminBalance);
+        await expect(voting.connect(admin).calculatePrize(0, 1)).to.be.revertedWith("NotWinner");
     });
 
     it("Does not claim prize second time", async function() {
-        let aliceBalance = await voteToken.balanceOf(alice.address);
-        await voting.connect(alice).claimPrize(0, 1);
-        expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance);
+        await expect(voting.connect(alice).claimPrize(0, 1)).to.be.revertedWith("NoPrize");
     });
 
     // season 2
@@ -357,7 +338,7 @@ describe("Voting", function() {
         await ethers.provider.send('evm_increaseTime', [claimingDuration]);
         await nft.updateLevel(mayorId);
         let votesAmount = 100;
-        
+
         let rarity = await nft.getRarity(mayorId);
         let genVotesDiscount = await genVoteDiscount(rarity);
         let expectedPrice = BigInt(votesAmount * 100 * (100 - genVotesDiscount - 7) / 100);
@@ -388,7 +369,7 @@ describe("Voting", function() {
 
     it("Does not change votes price for the incorrect city", async function() {
         let newVotePrice = 200;
-        await expect(voting.connect(admin).changeCityVotePrice(666, newVotePrice)).to.be.revertedWith("IncorrectValue");
+        await expect(voting.connect(admin).changeCityVotePrice(666, newVotePrice)).to.be.revertedWith("UnknownCity");
     });
 
     it("Does not change votes price to the zero", async function() {
@@ -416,13 +397,13 @@ describe("Voting", function() {
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration + claimingDuration]);
         await ethers.provider.send("evm_mine");
-        
+
         await expect(voting.connect(alice).nominate(mayorId, 4, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 4, votesAmount);
         await expect(voting.connect(alice).nominate(mayorId2, 5, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId2, 5, votesAmount);
         await ethers.provider.send('evm_increaseTime', [votingDuration]);
-        
+
         await expect(voting.connect(alice).addBuilding(4, mayorId, BUILDINGS.Factory)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Factory, 4, alice.address);
-        
+
         blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send("evm_mine");

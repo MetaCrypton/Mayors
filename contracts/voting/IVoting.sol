@@ -12,8 +12,7 @@ interface IVoting {
     event BuildingAdded(Building newBuilding, uint256 indexed cityId, address indexed owner);
     event CandidateAdded(uint256 indexed mayorId, uint256 indexed cityId, uint256 votes);
     event CityUpdated(uint256 indexed cityId, bool isOpen);
-    event RegionsUpdated(uint256[] updatedRegions, bool isOpen);
-    event PrizeClaimed(address account, uint256 amount);
+    event PrizeClaimed(address indexed account, uint256 amount);
     event VotesPerCitizenUpdated(uint256 oldAmount, uint256 amount);
 
     function transferTokens(address recipient) external;

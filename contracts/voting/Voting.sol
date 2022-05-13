@@ -36,14 +36,14 @@ contract Voting is IVoting, Ownable {
     mapping(uint256 => uint256[]) internal _regionToCities;
 
 
-    // TODO: change bool to the timestamp for calculating Monument reward? 
+    // TODO: change bool to the timestamp for calculating Monument reward?
     // owner address => city id => Building => 0: not exists, >0: season number +1
     mapping(address => mapping(uint256 => mapping(Building => uint256))) internal _ownerToBuildings;
 
     // owner address => city id => season => claimed
     mapping(address => mapping(uint256 => mapping(uint256 => bool))) internal _ownerClaims;
 
-    // city id => season id => Nominee
+    // city id => season id => Nominee[]
     mapping(uint256 => mapping(uint256 => Nominee[])) internal _cityToNominees;
 
     uint256 internal _cityIdCounter = 0;
@@ -84,6 +84,7 @@ contract Voting is IVoting, Ownable {
 
         for (uint256 i = 0; i < newCities.length; i++) {
             NewCity memory newCity = newCities[i];
+            if (newCity.population == 0) revert VotingErrors.IncorrectValue();
             City memory city = City({
                 regionId: regionId,
                 name: newCity.name,
@@ -101,13 +102,13 @@ contract Voting is IVoting, Ownable {
     }
 
     function changeCityVotePrice(uint256 cityId, uint256 newPrice) external override isOwner {
-        if (_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
-        if (newPrice == 0) revert VotingErrors.IncorrectValue();
         City storage city = _cities[cityId];
-        uint256 oldPrice = city.votePrice;
-        if (_cities[cityId].population == 0) revert VotingErrors.IncorrectValue();
-        city.votePrice = newPrice;
+        if (city.population == 0) revert VotingErrors.UnknownCity();
+        if (_isVotingPeriod(city.regionId)) revert VotingErrors.IncorrectPeriod();
+        if (newPrice == 0) revert VotingErrors.IncorrectValue();
 
+        uint256 oldPrice = city.votePrice;
+        city.votePrice = newPrice;
         emit VotePriceUpdated(cityId, oldPrice, newPrice);
     }
 
@@ -116,15 +117,21 @@ contract Voting is IVoting, Ownable {
         uint256 mayorId,
         Building newBuilding
     ) external override {
+        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
         if(!_isGoverningPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
+
+        uint256 seasonNumber = _seasonNumber(_cities[cityId].regionId);
         if(
             _mayor.ownerOf(mayorId) != msg.sender ||
-            _calculateWinner(_seasonNumber(_cities[cityId].regionId) + 1, cityId) != mayorId
+            _calculateWinner(seasonNumber, cityId) != mayorId
         ) revert VotingErrors.WrongMayor();
+
         uint256 buildingPrice = _getBuildingPrice(newBuilding);
         if(_voucherToken.balanceOf(msg.sender) < buildingPrice) revert VotingErrors.InsufficientBalance();
         if(_ownerToBuildings[msg.sender][cityId][newBuilding] > 0) revert VotingErrors.BuildingDuplicate();
-        _ownerToBuildings[msg.sender][cityId][newBuilding] = _seasonNumber(_cities[cityId].regionId) + 1;
+
+        _ownerToBuildings[msg.sender][cityId][newBuilding] = seasonNumber;
+
         emit BuildingAdded(newBuilding, cityId, msg.sender);
         _voucherToken.transferFrom(msg.sender, address(this), buildingPrice);
     }
@@ -134,46 +141,48 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 votes
     ) external override {
-        if (!_cities[cityId].active) revert VotingErrors.InactiveObject();
-        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
-        if(_mayor.ownerOf(mayorId) != msg.sender) revert VotingErrors.WrongMayor();
+        City storage city = _cities[cityId];
+        if (city.population == 0) revert VotingErrors.UnknownCity();
+        if (!city.active) revert VotingErrors.InactiveObject();
+        if (!_isVotingPeriod(city.regionId)) revert VotingErrors.IncorrectPeriod();
+        if (_mayor.ownerOf(mayorId) != msg.sender) revert VotingErrors.WrongMayor();
+
+        uint256 seasonNumber = _seasonNumber(city.regionId);
+        uint256 citizenVotes = city.population * _votesPerCitizen / 10 ** _voteDigits;
+        if (votes > (citizenVotes - _getBank(cityId, seasonNumber))) revert VotingErrors.VotesBankExceeded();
+
         // get the price of those votes
         uint256 priceInVotes = _calculateVotesPrice(mayorId, cityId, votes);
-        // check if msg.sender has enough Token balance: balanceOf(msg.sender) >= votes
-        if (_voteToken.balanceOf(msg.sender) < priceInVotes) revert VotingErrors.InsufficientBalance();
+
         // save user vote info
-        _cityToNominees[cityId][_seasonNumber(_cities[cityId].regionId) + 1].push(
-            Nominee({ mayorId: mayorId, votes: votes })
-        );
+        _cityToNominees[cityId][seasonNumber].push(Nominee({ mayorId: mayorId, votes: votes }));
         emit CandidateAdded(mayorId, cityId, votes);
+
         // transfer the "votes" amount from user to reward pool
         _voteToken.transferFrom(msg.sender, address(this), priceInVotes);
     }
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external override isOwner {
         for(uint256 i = 0; i < citiesIds.length; i++) {
-            if (_isVotingPeriod(_cities[citiesIds[i]].regionId)) revert VotingErrors.IncorrectPeriod();
-            _cities[citiesIds[i]].active = isOpen;
-            emit CityUpdated(citiesIds[i], isOpen);
+            uint256 cityId = citiesIds[i];
+            if (_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
+            _cities[cityId].active = isOpen;
+            emit CityUpdated(cityId, isOpen);
         }
     }
 
     function claimPrize(uint256 cityId, uint256 season) external override {
-        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
-        if (_mayor.ownerOf(_calculateWinner(season, cityId)) == msg.sender) {
-            uint256 prize = _calculatePrizeToUser(
-                cityId, msg.sender, season, _getBank(_cityToNominees[cityId][season])
-            );
-            // send tokens to the winner
-            if (prize > 0 && !_ownerClaims[msg.sender][cityId][season]) {
-                _ownerClaims[msg.sender][cityId][season] = true;
-                _voteToken.transfer(msg.sender, prize);
-                emit PrizeClaimed(msg.sender, prize);
+        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
+        uint256 prize = _calculatePrizeToUser(cityId, season, msg.sender);
 
-                // 3% needs to be burned
-                _voteToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
-            }
-        }
+        _ownerClaims[msg.sender][cityId][season] = true;
+
+        // send tokens to the winner
+        emit PrizeClaimed(msg.sender, prize);
+        _voteToken.transfer(msg.sender, prize);
+
+        // 3% needs to be burned
+        _voteToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
     }
 
     function getWinner(uint256 cityId, uint256 season) external view override returns(uint256) {
@@ -185,18 +194,13 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 votes
     ) external view override returns(uint256) {
+        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
         return _calculateVotesPrice(mayorId, cityId, votes);
     }
 
     function calculatePrize(uint256 cityId, uint256 season) external view override returns(uint256) {
-        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
-        if (_mayor.ownerOf(_calculateWinner(season, cityId)) == msg.sender) {
-            uint256 prize = _calculatePrizeToUser(
-                cityId, msg.sender, season, _getBank(_cityToNominees[cityId][season])
-            );
-            return !_ownerClaims[msg.sender][cityId][season] ? prize : 0;
-        }
-        return 0;
+        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
+        return _calculatePrizeToUser(cityId, season, msg.sender);
     }
 
     function _startVoting(uint256 regionId) internal {
@@ -211,7 +215,7 @@ contract Voting is IVoting, Ownable {
     function _seasonNumber(uint256 regionId) internal view returns(uint256) {
         // solhint-disable-next-line not-rely-on-time
         return (block.timestamp - _regions[regionId].startVotingTimestamp) /
-            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION);
+            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION) + 1;
     }
 
     function _isVotingPeriod(uint256 regionId) internal view returns(bool) {
@@ -222,7 +226,7 @@ contract Voting is IVoting, Ownable {
 
     function _isGoverningPeriod(uint256 regionId) internal view returns(bool) {
         /* solhint-disable not-rely-on-time */
-        return 
+        return
             ((block.timestamp - _regions[regionId].startVotingTimestamp) %
                 (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) > VOTING_DURATION &&
             ((block.timestamp - _regions[regionId].startVotingTimestamp) %
@@ -241,11 +245,6 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 votes
     ) internal view returns(uint256) {
-        if (!_isVotingPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
-        Nominee[] memory nominees = _cityToNominees[cityId][_seasonNumber(_cities[cityId].regionId) + 1];
-        if(
-            votes > ((_cities[cityId].population * _votesPerCitizen / 10 ** _voteDigits) - _getBank(nominees))
-        ) revert VotingErrors.VotesBankExceeded();
         return (votes * _cities[cityId].votePrice * _getVoteMultiplier(mayorId, cityId, msg.sender)) / 100;
     }
 
@@ -268,18 +267,19 @@ contract Voting is IVoting, Ownable {
     }
 
     function _calculateWinner(
-        uint256 season, 
+        uint256 season,
         uint256 cityId
     ) internal view returns(uint256) {
-        Nominee[] memory nominees = _cityToNominees[cityId][season];
-        if (nominees.length == 0) revert VotingErrors.IncorrectValue();
-        uint256 random = uint256(keccak256(abi.encodePacked(season, cityId)));
-        uint256 bank = _getBank(nominees);
+        uint256 bank = _getBank(cityId, season);
+        if (bank == 0) revert VotingErrors.IncorrectValue();
 
+        uint256 random = uint256(keccak256(abi.encodePacked(season, cityId)));
         uint256 winnerRate = random % bank;
         uint256 votesCounter = 0;
 
-        for (uint256 i = 0; i < nominees.length; i++) {
+        Nominee[] storage nominees = _cityToNominees[cityId][season];
+        uint256 nomineesLength = nominees.length;
+        for (uint256 i = 0; i < nomineesLength; i++) {
             votesCounter += nominees[i].votes;
             if (winnerRate < votesCounter) {
                 return nominees[i].mayorId;
@@ -311,20 +311,29 @@ contract Voting is IVoting, Ownable {
 
     function _calculatePrizeToUser(
         uint256 cityId,
-        address account,
         uint256 season,
-        uint256 bank
+        address account
     ) internal view returns(uint256) {
-        return bank * (PRIZE_RATE + _calculateGovernanceRate(cityId, account, season)) / 100;
+        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
+        if (_mayor.ownerOf(_calculateWinner(season, cityId)) != account) revert VotingErrors.NotWinner();
+
+        uint256 bank = _getBank(cityId, season);
+        uint256 prize = bank * (PRIZE_RATE + _calculateGovernanceRate(cityId, account, season)) / 100;
+
+        if (prize <= 0 || _ownerClaims[account][cityId][season]) revert VotingErrors.NoPrize();
+        return prize;
     }
 
     function _calculatePrizeToBurn(uint256 cityId, uint256 season) internal view returns(uint256) {
-        return _getBank(_cityToNominees[cityId][season]) * REWARD_BURN_RATE / 100;
+        return _getBank(cityId, season) * REWARD_BURN_RATE / 100;
     }
 
-    function _getBank (Nominee[] memory nominees) internal pure returns (uint256) {
+    function _getBank(uint256 cityId, uint256 seasonNumber) internal view returns (uint256) {
         uint256 bank = 0;
-        for (uint256 i = 0; i < nominees.length; i++) {
+
+        Nominee[] storage nominees = _cityToNominees[cityId][seasonNumber];
+        uint256 nomineesLength = nominees.length;
+        for (uint256 i = 0; i < nomineesLength; i++) {
             bank += nominees[i].votes;
         }
         return bank;
