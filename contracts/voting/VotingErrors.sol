@@ -15,4 +15,5 @@ library VotingErrors {
     error NotWinner();
     error NoPrize();
     error UnknownCity();
+    error AlreadyClaimed();
 }
