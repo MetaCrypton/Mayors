@@ -123,9 +123,7 @@ contract Voting is IVoting, Ownable {
         if(_mayor.ownerOf(winnerMayorId) != msg.sender) revert VotingErrors.NotWinner();
 
         uint256 buildingPrice = _getBuildingPrice(newBuilding);
-        if(_voucherToken.balanceOf(msg.sender) < buildingPrice) revert VotingErrors.InsufficientBalance();
         if(_ownerToBuildings[msg.sender][cityId][newBuilding] > 0) revert VotingErrors.BuildingDuplicate();
-
         _ownerToBuildings[msg.sender][cityId][newBuilding] = season;
 
         emit BuildingAdded(newBuilding, cityId, winnerMayorId, msg.sender);

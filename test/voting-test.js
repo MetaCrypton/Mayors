@@ -258,7 +258,7 @@ describe("Voting", function() {
     });
 
     it("Does not add a building without enough tokens", async function() {
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Hospital)).to.be.revertedWith("InsufficientBalance");
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Hospital)).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
 
     it("Adds a building by user", async function() {
