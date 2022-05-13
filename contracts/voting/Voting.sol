@@ -13,9 +13,8 @@ import "./VotingStructs.sol";
 import "./VotingErrors.sol";
 
 contract Voting is IVoting, Ownable {
-    uint256 internal constant VOTING_DURATION = 86400; //24 hours in seconds
-    uint256 internal constant GOVERNANCE_DURATION = 86400 * 5; //5 days in seconds
-    uint256 internal constant CLAIMING_DURATION = 86400; //24 hours in seconds
+    uint256 internal constant VOTING_DURATION = 1 days;
+    uint256 internal constant GOVERNANCE_DURATION = 6 days;
 
     uint256 internal constant PRIZE_RATE = 87;
     uint256 internal constant REWARD_BURN_RATE = 3;
@@ -173,6 +172,10 @@ contract Voting is IVoting, Ownable {
 
     function claimPrize(uint256 cityId, uint256 season) external override {
         if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
+
+        uint256 currentSeason = _seasonNumber(_cities[cityId].regionId);
+        if (season >= currentSeason) revert VotingErrors.IncorrectPeriod();
+
         uint256 prize = _calculatePrizeToUser(cityId, season, msg.sender);
 
         _ownerClaims[msg.sender][cityId][season] = true;
@@ -199,7 +202,6 @@ contract Voting is IVoting, Ownable {
     }
 
     function calculatePrize(uint256 cityId, uint256 season) external view override returns(uint256) {
-        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
         return _calculatePrizeToUser(cityId, season, msg.sender);
     }
 
@@ -214,30 +216,20 @@ contract Voting is IVoting, Ownable {
 
     function _seasonNumber(uint256 regionId) internal view returns(uint256) {
         // solhint-disable-next-line not-rely-on-time
-        return (block.timestamp - _regions[regionId].startVotingTimestamp) /
-            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION) + 1;
+        return ((block.timestamp - _regions[regionId].startVotingTimestamp) /
+            (VOTING_DURATION + GOVERNANCE_DURATION)) + 1;
     }
 
     function _isVotingPeriod(uint256 regionId) internal view returns(bool) {
         // solhint-disable-next-line not-rely-on-time
         return ((block.timestamp - _regions[regionId].startVotingTimestamp) %
-            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) < VOTING_DURATION;
+            (VOTING_DURATION + GOVERNANCE_DURATION)) < VOTING_DURATION;
     }
 
     function _isGoverningPeriod(uint256 regionId) internal view returns(bool) {
-        /* solhint-disable not-rely-on-time */
-        return
-            ((block.timestamp - _regions[regionId].startVotingTimestamp) %
-                (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) > VOTING_DURATION &&
-            ((block.timestamp - _regions[regionId].startVotingTimestamp) %
-                (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) < (VOTING_DURATION + GOVERNANCE_DURATION);
-        /* solhint-enable not-rely-on-time */
-    }
-
-    function _isRewardPeriod(uint256 regionId) internal view returns(bool) {
         // solhint-disable-next-line not-rely-on-time
         return ((block.timestamp - _regions[regionId].startVotingTimestamp) %
-            (VOTING_DURATION + GOVERNANCE_DURATION + CLAIMING_DURATION)) > (VOTING_DURATION + GOVERNANCE_DURATION);
+            (VOTING_DURATION + GOVERNANCE_DURATION)) > VOTING_DURATION;
     }
 
     function _calculateVotesPrice(
@@ -314,7 +306,6 @@ contract Voting is IVoting, Ownable {
         uint256 season,
         address account
     ) internal view returns(uint256) {
-        if (!_isRewardPeriod(_cities[cityId].regionId)) revert VotingErrors.IncorrectPeriod();
         if (_mayor.ownerOf(_calculateWinner(season, cityId)) != account) revert VotingErrors.NotWinner();
 
         uint256 bank = _getBank(cityId, season);
@@ -328,10 +319,10 @@ contract Voting is IVoting, Ownable {
         return _getBank(cityId, season) * REWARD_BURN_RATE / 100;
     }
 
-    function _getBank(uint256 cityId, uint256 seasonNumber) internal view returns (uint256) {
+    function _getBank(uint256 cityId, uint256 season) internal view returns (uint256) {
         uint256 bank = 0;
 
-        Nominee[] storage nominees = _cityToNominees[cityId][seasonNumber];
+        Nominee[] storage nominees = _cityToNominees[cityId][season];
         uint256 nomineesLength = nominees.length;
         for (uint256 i = 0; i < nomineesLength; i++) {
             bank += nominees[i].votes;

@@ -10,8 +10,7 @@ describe("Voting", function() {
     let mayorId, mayorId2, mayorId3, voting;
 
     const votingDuration = 86400;
-    const governanceDuration = 86400 * 5; // 5 days
-    const claimingDuration = 86400;
+    const governanceDuration = 86400 * 6; // 6 days
     const VOTES_PER_CITIZEN = 100;
     const BASE_URI = "https://baseuri.io";
     const NUMBER_IN_LOOTBOXES = 20;
@@ -301,13 +300,14 @@ describe("Voting", function() {
     it("Calculates prize after governance period", async function() {
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
+        await ethers.provider.send('evm_increaseTime', [1]); // transit from governance to voting period
         await ethers.provider.send("evm_mine");
         let expectedPrize = BigInt(400 * (87 + 7) / 100);
         expect(await voting.connect(alice).calculatePrize(0, 1)).to.be.equal(expectedPrize);
     });
 
-    it("Does not calculate prize for unknown city", async function() {
-        await expect(voting.connect(alice).calculatePrize(10, 1)).to.be.revertedWith("UnknownCity");
+    it("Does not calculate prize for the city with no bank", async function() {
+        await expect(voting.connect(alice).calculatePrize(10, 1)).to.be.revertedWith("IncorrectValue");
     });
 
 
@@ -335,7 +335,6 @@ describe("Voting", function() {
 
     // season 2
     it("Calculating votes price for the mayor with discounts", async function() {
-        await ethers.provider.send('evm_increaseTime', [claimingDuration]);
         await nft.updateLevel(mayorId);
         let votesAmount = 100;
 
@@ -348,10 +347,6 @@ describe("Voting", function() {
         genVotesDiscount = 0;
         expectedPrice = BigInt(votesAmount * 300 * (100 - genVotesDiscount - 5) / 100);
         expect(await voting.connect(alice).calculateVotesPrice(mayorId3, 2, votesAmount)).to.be.equal(expectedPrice);
-    });
-
-    it("Does not calculate prize during election", async function() {
-        await expect(voting.connect(alice).calculatePrize(0, 2)).to.be.revertedWith("IncorrectPeriod");
     });
 
     it("Does not change votes price during election", async function() {
@@ -386,16 +381,12 @@ describe("Voting", function() {
         await expect(voting.connect(alice).addBuilding(0, mayorId2, BUILDINGS.Hospital)).to.be.revertedWith("WrongMayor");
     });
 
-    it("Does not calculate prize during governance period", async function() {
-        await expect(voting.connect(alice).calculatePrize(0, 2)).to.be.revertedWith("IncorrectPeriod");
-    });
-
     // season 3
 
     it("Calculates prize for the mayor with the factory and with no buildings", async function() {
         let votesAmount = 200;
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
-        await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration + claimingDuration]);
+        await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send("evm_mine");
 
         await expect(voting.connect(alice).nominate(mayorId, 4, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 4, votesAmount);
