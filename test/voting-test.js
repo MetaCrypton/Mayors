@@ -297,11 +297,11 @@ describe("Voting", function() {
     });
 
     it("Does not allow to claim prize for the incorrect city", async function() {
-        await expect(voting.connect(alice).claimPrize(999, 1)).to.be.revertedWith("UnknownCity");
+        await expect(voting.connect(alice).claimPrizes([{cityId: 999, season: 1}])).to.be.revertedWith("UnknownCity");
     });
 
     it("Does not allow to claim prize in the non-reward period", async function() {
-        await expect(voting.connect(alice).claimPrize(0, 1)).to.be.revertedWith("IncorrectPeriod");
+        await expect(voting.connect(alice).claimPrizes([{cityId: 0, season: 1}])).to.be.revertedWith("IncorrectPeriod");
     });
 
     it("Calculates prize after governance period", async function() {
@@ -319,16 +319,19 @@ describe("Voting", function() {
         let totalexpected = expectedPrize0.add(expectedPrize2);
         let aliceBalance = await voteToken.balanceOf(alice.address);
         let votingBalance = await voteToken.balanceOf(voting.address);
-        await expect(voting.connect(alice).claimPrize(0, 1))
+        await expect(voting.connect(alice).claimPrizes([
+            {cityId: 0, season: 1},
+            {cityId: 2, season: 1}
+        ]))
             .to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize0)
-            .to.emit(voteToken, "Transfer").withArgs(voting.address, ethers.constants.AddressZero, 400 * 0.03);
-        await expect(voting.connect(alice).claimPrize(2, 1)).to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize2);
+            .to.emit(voteToken, "Transfer").withArgs(voting.address, ethers.constants.AddressZero, 400 * 0.03)
+            .to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize2);
         expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance.add(totalexpected));
         expect(await voteToken.balanceOf(voting.address)).to.be.equal(votingBalance.sub(totalexpected.add(400 * 0.03 * 2)));
     });
 
     it("Does not claim prize second time", async function() {
-        await expect(voting.connect(alice).claimPrize(0, 1)).to.be.revertedWith("AlreadyClaimed");
+        await expect(voting.connect(alice).claimPrizes([{cityId: 0, season: 1}])).to.be.revertedWith("AlreadyClaimed");
     });
 
     // season 2

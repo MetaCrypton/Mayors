@@ -167,27 +167,11 @@ contract Voting is IVoting, Ownable {
         }
     }
 
-    function claimPrize(uint256 cityId, uint256 season) external override {
-        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
-
-        uint256 currentSeason = _seasonNumber(_cities[cityId].regionId);
-        if (season >= currentSeason) revert VotingErrors.IncorrectPeriod();
-
-        uint256 winnerMayorId = _calculateWinner(season, cityId);
-        if (_mayor.ownerOf(winnerMayorId) != msg.sender) revert VotingErrors.NotWinner();
-        if (_ownerClaims[msg.sender][cityId][season]) revert VotingErrors.AlreadyClaimed();
-
-        uint256 prize = calculatePrizeToUser(cityId, season, msg.sender);
-        if (prize == 0) revert VotingErrors.NoPrize();
-
-        _ownerClaims[msg.sender][cityId][season] = true;
-
-        // send tokens to the winner
-        emit PrizeClaimed(msg.sender, prize);
-        _voteToken.transfer(msg.sender, prize);
-
-        // 3% needs to be burned
-        _voteToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
+    function claimPrizes(PrizeClaim[] calldata claims) external override {
+        uint256 claimsLength = claims.length;
+        for (uint256 i = 0; i < claimsLength; i++) {
+            _claimPrize(claims[i].cityId, claims[i].season);
+        }
     }
 
     function getWinner(uint256 cityId, uint256 season) external view override returns(uint256) {
@@ -210,6 +194,29 @@ contract Voting is IVoting, Ownable {
     ) public view override returns(uint256) {
         uint256 bank = _getBank(cityId, season);
         return bank * (PRIZE_RATE + _calculateGovernanceRate(cityId, account, season)) / 100;
+    }
+
+    function _claimPrize(uint256 cityId, uint256 season) internal {
+        if (_cities[cityId].population == 0) revert VotingErrors.UnknownCity();
+
+        uint256 currentSeason = _seasonNumber(_cities[cityId].regionId);
+        if (season >= currentSeason) revert VotingErrors.IncorrectPeriod();
+
+        uint256 winnerMayorId = _calculateWinner(season, cityId);
+        if (_mayor.ownerOf(winnerMayorId) != msg.sender) revert VotingErrors.NotWinner();
+        if (_ownerClaims[msg.sender][cityId][season]) revert VotingErrors.AlreadyClaimed();
+
+        uint256 prize = calculatePrizeToUser(cityId, season, msg.sender);
+        if (prize == 0) revert VotingErrors.NoPrize();
+
+        _ownerClaims[msg.sender][cityId][season] = true;
+
+        // send tokens to the winner
+        emit PrizeClaimed(msg.sender, prize);
+        _voteToken.transfer(msg.sender, prize);
+
+        // 3% needs to be burned
+        _voteToken.burn(address(this), _calculatePrizeToBurn(cityId, season));
     }
 
     function _startVoting(uint256 regionId) internal {
@@ -284,6 +291,9 @@ contract Voting is IVoting, Ownable {
                 return nominees[i].mayorId;
             }
         }
+
+        // it will never be reached
+        return nominees[nomineesLength - 1].mayorId;
     }
 
     // TODO: calculate Monument rate

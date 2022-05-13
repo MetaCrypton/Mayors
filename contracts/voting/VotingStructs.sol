@@ -30,9 +30,12 @@ struct NewCity {
     uint256 votePrice;
 }
 
-
 struct Nominee {
     uint256 mayorId;
     uint256 votes;
 }
 
+struct PrizeClaim {
+    uint256 cityId;
+    uint256 season;
+}
