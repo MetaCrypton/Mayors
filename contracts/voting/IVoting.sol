@@ -36,7 +36,7 @@ interface IVoting {
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external;
 
-    function claimPrizes(PrizeClaim[] calldata claims) external;
+    function claimPrizes(uint256 cityId) external;
 
     function getWinner(uint256 cityId, uint256 season) external view returns(uint256);
 
@@ -45,6 +45,4 @@ interface IVoting {
         uint256 cityId,
         uint256 votes
     ) external view returns(uint256);
-
-    function calculatePrizeToUser(uint256 cityId, uint256 season, address account) external view returns(uint256);
 }

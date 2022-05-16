@@ -35,7 +35,8 @@ struct Nominee {
     uint256 votes;
 }
 
-struct PrizeClaim {
-    uint256 cityId;
+// season > 0
+struct Reward {
     uint256 season;
+    bool isClaimed;
 }
