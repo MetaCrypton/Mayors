@@ -36,7 +36,13 @@ struct Nominee {
     uint256 votes;
 }
 
-struct BuildingClaim {
+struct BuildingInfo {
     Building building;
-    bool isClaimed;
+    uint256 season;
+}
+
+struct ClaimInfo {
+    uint256 cityId;
+    uint256[] seasonIds;
+    Building[] bulidings;
 }

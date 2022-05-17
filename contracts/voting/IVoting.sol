@@ -9,7 +9,7 @@ interface IVoting {
     event CitiesAdded(uint256 indexed regionId, uint256[] newCities);
     event VotePriceUpdated(uint256 indexed cityId, uint256 oldPrice, uint256 newPrice);
     event VotingStarted(uint256 indexed regionId, uint256 endVotingTimestamp);
-    event BuildingAdded(Building newBuilding, uint256 indexed cityId, uint256 indexed mayorId, address indexed owner);
+    event BuildingAdded(address indexed owner, uint256 indexed cityId, uint256 indexed season, Building newBuilding);
     event CandidateAdded(uint256 indexed mayorId, uint256 indexed cityId, uint256 votes);
     event CityUpdated(uint256 indexed cityId, bool isOpen);
     event PrizeClaimed(address indexed account, uint256 amount, uint256 toBurn);
@@ -36,38 +36,30 @@ interface IVoting {
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external;
 
-    function claimPrizes(
-        uint256 cityId,
-        uint256[] calldata electionSeasonIds,
-        uint256[] calldata buildingSeasonIds
-    ) external;
+    function claimPrizes(ClaimInfo[] calldata claimInfo) external;
 
     function getCurrentSeason(uint256 cityId) external view returns (uint256);
     function getWinner(uint256 cityId, uint256 season) external view returns(uint256);
 
-    function getUnclaimedElectionPrizes(
+    function getUnclaimedSeasons(
         address account,
         uint256 cityId,
-        uint256 startIndex,
-        uint256 endIndex
+        uint256 startSeason,
+        uint256 endSeason,
+        uint256 currentSeason
     ) external view returns (bool[] memory);
 
     function getUnclaimedBuildings(
         address account,
         uint256 cityId,
-        uint256 startIndex,
-        uint256 endIndex
+        uint256 currentSeason
     ) external view returns (bool[] memory);
 
-    function getElectionPrizes(
-        uint256 cityId,
-        uint256[] calldata seasonIds
-    ) external view returns (uint256);
-
-    function getBuildingPrizes(
+    function calculatePrizes(
         address account,
         uint256 cityId,
         uint256[] calldata seasonIds,
+        Building[] calldata buildings,
         uint256 currentSeason
     ) external view returns (uint256);
 

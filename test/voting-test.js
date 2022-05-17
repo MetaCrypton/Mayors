@@ -34,12 +34,13 @@ describe("Voting", function() {
     };
 
     const BUILDINGS = {
-        University: 0,
-        Hospital: 1,
-        Bank: 2,
-        Factory: 3,
-        Stadium: 4,
-        Monument: 5
+        Empty: 0,
+        University: 1,
+        Hospital: 2,
+        Bank: 3,
+        Factory: 4,
+        Stadium: 5,
+        Monument: 6
     }
 
     async function deploy(contractName, signer, ...args) {
@@ -265,14 +266,14 @@ describe("Voting", function() {
         let cityMayor0 = await voting.getWinner(0, 1);
         let cityMayor2 = await voting.getWinner(2, 1);
         await voucherToken.connect(admin).mint(alice.address, ALICE_VOUCHER_MINT);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.University)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.University, 0, cityMayor0, alice.address);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Hospital)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Hospital, 0, cityMayor0, alice.address);
-        await expect(voting.connect(alice).addBuilding(2, BUILDINGS.Hospital)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Hospital, 2, cityMayor2, alice.address);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Bank)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Bank, 0, cityMayor0, alice.address);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Factory)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Factory, 0, cityMayor0, alice.address);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Stadium)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Stadium, 0, cityMayor0, alice.address);
-        await expect(voting.connect(alice).addBuilding(2, BUILDINGS.Stadium)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Stadium, 2, cityMayor2, alice.address);
-        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Monument)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Monument, 0, cityMayor0, alice.address);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.University)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.University);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Hospital)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.Hospital);
+        await expect(voting.connect(alice).addBuilding(2, BUILDINGS.Hospital)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 2, 1, BUILDINGS.Hospital);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Bank)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.Bank);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Factory)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.Factory);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Stadium)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.Stadium);
+        await expect(voting.connect(alice).addBuilding(2, BUILDINGS.Stadium)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 2, 1, BUILDINGS.Stadium);
+        await expect(voting.connect(alice).addBuilding(0, BUILDINGS.Monument)).to.emit(voting, "BuildingAdded").withArgs(alice.address, 0, 1, BUILDINGS.Monument);
     });
 
     it("Does not add the already built building", async function() {
@@ -297,41 +298,148 @@ describe("Voting", function() {
     });
 
     it("Does not allow to claim prize for the incorrect city", async function() {
-        await expect(voting.connect(alice).claimPrizes([{cityId: 999, season: 1}])).to.be.revertedWith("UnknownCity");
+        await expect(voting.connect(alice).claimPrizes([[999, [1], []]])).to.be.revertedWith("UnknownCity");
     });
 
     it("Does not allow to claim prize in the non-reward period", async function() {
-        await expect(voting.connect(alice).claimPrizes([{cityId: 0, season: 1}])).to.be.revertedWith("IncorrectPeriod");
+        await expect(voting.connect(alice).claimPrizes([[0, [1], []]])).to.be.revertedWith("IncorrectPeriod");
+    });
+
+    it("Does not get unclaimed seasons in the non-reward period", async function() {
+        let cityId = 0;
+        let startSeason = 1;
+        let endSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        let currentSeason = endSeason;
+        expect(endSeason).to.be.equal(1);
+
+        let unclaimedSeasons = await voting.connect(alice).getUnclaimedSeasons(alice.address, cityId, startSeason, endSeason, currentSeason);
+        expect(unclaimedSeasons.length).to.be.equal(1);
+        expect(unclaimedSeasons[0]).to.be.equal(false);
+
+        // future season
+        unclaimedSeasons = await voting.connect(alice).getUnclaimedSeasons(alice.address, cityId, startSeason, endSeason, currentSeason+1);
+        expect(unclaimedSeasons.length).to.be.equal(1);
+        expect(unclaimedSeasons[0]).to.be.equal(true);
+    });
+
+    it("Get election prizes", async function() {
+        let cityId = 0;
+        let unclaimedSeasons = [1];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(
+            alice.address, cityId, unclaimedSeasons, [], currentSeason)).to.be.equal(348);
+    });
+
+    it("Does not get prizes from non-exists seasons", async function() {
+        let cityId = 0;
+        let unclaimedSeasons = [1, 2, 3];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(
+            alice.address, cityId, unclaimedSeasons, [], currentSeason)).to.be.equal(348);
+    });
+
+    it("Does not get unclaimed buildings in the non-reward period", async function() {
+        let cityId = 0;
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(currentSeason).to.be.equal(1);
+
+        let unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, currentSeason);
+        expect(unclaimedBuildings.length).to.be.equal(4);
+        expect(unclaimedBuildings[0]).to.be.equal(false);
+        expect(unclaimedBuildings[1]).to.be.equal(false);
+        expect(unclaimedBuildings[2]).to.be.equal(false);
+        expect(unclaimedBuildings[3]).to.be.equal(false);
+
+        // future season
+        unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, currentSeason+1);
+        expect(unclaimedBuildings.length).to.be.equal(4);
+        expect(unclaimedBuildings[0]).to.be.equal(true);
+        expect(unclaimedBuildings[1]).to.be.equal(true);
+        expect(unclaimedBuildings[2]).to.be.equal(true);
+        expect(unclaimedBuildings[3]).to.be.equal(false);
+    });
+
+    it("Get buliding prizes", async function() {
+        let cityId = 0;
+        let unclaimedBuildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium, BUILDINGS.Monument];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(
+            alice.address, cityId, [], unclaimedBuildings, currentSeason)).to.be.equal(0);
+    });
+
+    it("Get buliding prizes for the future seasons", async function() {
+        let cityId = 0;
+        let unclaimedBuildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium, BUILDINGS.Monument];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(
+            alice.address, cityId, [], unclaimedBuildings, currentSeason + 1)).to.be.equal(56);
+    });
+
+    it("Get monument prizes for the future seasons", async function() {
+        let cityId = 0;
+        let unclaimedBuildings = [BUILDINGS.Monument];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason)).to.be.equal(0);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 1)).to.be.equal(0);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 2)).to.be.equal(0);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 3)).to.be.equal(0);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 4)).to.be.equal(4);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 500)).to.be.equal(4);
+    });
+
+    it("Does not get prizes from non-claimable buildings", async function() {
+        let cityId = 0;
+        let unclaimedBuildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium, BUILDINGS.Monument, BUILDINGS.Hospital];
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason)).to.be.equal(0);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, [], unclaimedBuildings, currentSeason + 1)).to.be.equal(56);
     });
 
     it("Calculates prize after governance period", async function() {
+        let cityId = 0;
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send('evm_increaseTime', [1]); // transit from governance to voting period
         await ethers.provider.send("evm_mine");
-        let expectedPrize = BigInt(400 * (87 + 7) / 100);
-        expect(await voting.connect(alice).calculatePrizeToUser(0, 1, alice.address)).to.be.equal(expectedPrize);
+
+        let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
+        expect(currentSeason).to.be.equal(2);
+
+        let unclaimedSeasons = [1];
+        let unclaimedBuildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium];
+        let expectedPrize = BigInt(400 * (87 + 7 + 5 + 2) / 100);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId, unclaimedSeasons, unclaimedBuildings, currentSeason)).to.be.equal(expectedPrize);
     });
 
     it("Claiming prize after governance period", async function() {
-        let expectedPrize0 = await voting.connect(alice).calculatePrizeToUser(0, 1, alice.address);
-        let expectedPrize2 = await voting.connect(alice).calculatePrizeToUser(2, 1, alice.address);
-        let totalexpected = expectedPrize0.add(expectedPrize2);
-        let aliceBalance = await voteToken.balanceOf(alice.address);
-        let votingBalance = await voteToken.balanceOf(voting.address);
+        let cityId0 = 0;
+        let cityId2 = 2;
+        let currentSeason = 2;
+        let unclaimedSeasons0 = [1];
+        let unclaimedBuildings0 = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium];
+        let unclaimedSeasons2 = [1];
+        let unclaimedBuildings2 = [BUILDINGS.Stadium];
+
+        let expectedPrize0 = Number(await voting.connect(alice).calculatePrizes(alice.address, cityId0, unclaimedSeasons0, unclaimedBuildings0, currentSeason));
+        let expectedPrize2 = Number(await voting.connect(alice).calculatePrizes(alice.address, cityId2, unclaimedSeasons2, unclaimedBuildings2, currentSeason));
+        let totalexpected = expectedPrize0 + expectedPrize2;
+        let aliceBalance = Number(await voteToken.balanceOf(alice.address));
+        let votingBalance = Number(await voteToken.balanceOf(voting.address));
         await expect(voting.connect(alice).claimPrizes([
-            {cityId: 0, season: 1},
-            {cityId: 2, season: 1}
+            [0, unclaimedSeasons0, unclaimedBuildings0],
+            [2, unclaimedSeasons2, unclaimedBuildings2],
         ]))
-            .to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize0)
-            .to.emit(voteToken, "Transfer").withArgs(voting.address, ethers.constants.AddressZero, 400 * 0.03)
-            .to.emit(voting, "PrizeClaimed").withArgs(alice.address, expectedPrize2);
-        expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance.add(totalexpected));
-        expect(await voteToken.balanceOf(voting.address)).to.be.equal(votingBalance.sub(totalexpected.add(400 * 0.03 * 2)));
+            .to.emit(voting, "PrizeClaimed").withArgs(alice.address, totalexpected, 400 * 0.03 * 2)
+            .to.emit(voteToken, "Transfer").withArgs(voting.address, alice.address, expectedPrize0 + expectedPrize2)
+        expect(await voteToken.balanceOf(alice.address)).to.be.equal(aliceBalance + totalexpected);
+        expect(await voteToken.balanceOf(voting.address)).to.be.equal(votingBalance - totalexpected - 400 * 0.03 * 2);
     });
 
     it("Does not claim prize second time", async function() {
-        await expect(voting.connect(alice).claimPrizes([{cityId: 0, season: 1}])).to.be.revertedWith("AlreadyClaimed");
+        let cityId = 0;
+        let unclaimedSeasons = [1];
+        let unclaimedBuildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium];
+        await expect(voting.connect(alice).claimPrizes([[cityId, unclaimedSeasons, unclaimedBuildings]])).to.be.revertedWith("AlreadyClaimed");
     });
 
     // season 2
@@ -387,25 +495,29 @@ describe("Voting", function() {
     // season 3
 
     it("Calculates prize for the mayor with the factory and with no buildings", async function() {
+        let cityId4 = 4;
+        let cityId5 = 5;
+        let currentSeason = 3;
         let votesAmount = 200;
         let blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send("evm_mine");
 
-        await expect(voting.connect(alice).nominate(mayorId, 4, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, 4, votesAmount);
-        await expect(voting.connect(alice).nominate(mayorId2, 5, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId2, 5, votesAmount);
+        await expect(voting.connect(alice).nominate(mayorId, cityId4, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId, cityId4, votesAmount);
+        await expect(voting.connect(alice).nominate(mayorId2, cityId5, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId2, cityId5, votesAmount);
         await ethers.provider.send('evm_increaseTime', [votingDuration]);
 
-        await expect(voting.connect(alice).addBuilding(4, BUILDINGS.Factory)).to.emit(voting, "BuildingAdded").withArgs(BUILDINGS.Factory, 4, mayorId, alice.address);
+        await expect(voting.connect(alice).addBuilding(cityId4, BUILDINGS.Factory)).to.emit(voting, "BuildingAdded").withArgs(alice.address, cityId4, currentSeason, BUILDINGS.Factory);
 
         blockTimestamp = (await ethers.provider.getBlock()).timestamp;
         await ethers.provider.send("evm_setNextBlockTimestamp", [blockTimestamp + governanceDuration]);
         await ethers.provider.send("evm_mine");
+        currentSeason = 4;
 
         let expectedPrize4 = BigInt(votesAmount * (87 + 5) / 100);
         let expectedPrize5 = BigInt(votesAmount * 87 / 100);
-        expect(await voting.connect(alice).calculatePrizeToUser(4, 3, alice.address)).to.be.equal(expectedPrize4);
-        expect(await voting.connect(alice).calculatePrizeToUser(5, 3, alice.address)).to.be.equal(expectedPrize5);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId4, [3], [BUILDINGS.Factory], currentSeason)).to.be.equal(expectedPrize4);
+        expect(await voting.connect(alice).calculatePrizes(alice.address, cityId5, [3], [], currentSeason)).to.be.equal(expectedPrize5);
     });
 
     it("Transfer tokens to recipient", async function() {

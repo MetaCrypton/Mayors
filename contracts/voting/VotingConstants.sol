@@ -6,6 +6,8 @@ library VotingConstants {
     uint8 internal constant BUILDING_DISCOUNT_UNIVERSITY = 7;
     uint8 internal constant BUILDING_DISCOUNT_HOSPITAL = 5;
 
+    uint8 internal constant BUILDING_ACTIVATION_DELAY = 4;
+
     uint8 internal constant GOVERNANCE_RATE_BANK = 7;
     uint8 internal constant GOVERNANCE_RATE_FACTORY = 5;
     uint8 internal constant GOVERNANCE_RATE_STADIUM = 2;
