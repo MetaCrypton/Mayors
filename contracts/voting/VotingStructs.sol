@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 enum Building {
+    Empty,
     University,
     Hospital,
     Bank,
@@ -35,8 +36,7 @@ struct Nominee {
     uint256 votes;
 }
 
-// season > 0
-struct Reward {
-    uint256 season;
+struct BuildingClaim {
+    Building building;
     bool isClaimed;
 }
