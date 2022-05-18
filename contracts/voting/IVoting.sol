@@ -52,6 +52,7 @@ interface IVoting {
     function getUnclaimedBuildings(
         address account,
         uint256 cityId,
+        Building[] calldata buildings,
         uint256 currentSeason
     ) external view returns (bool[] memory);
 

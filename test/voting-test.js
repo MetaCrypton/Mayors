@@ -340,10 +340,11 @@ describe("Voting", function() {
 
     it("Does not get unclaimed buildings in the non-reward period", async function() {
         let cityId = 0;
+        let buildings = [BUILDINGS.Bank, BUILDINGS.Factory, BUILDINGS.Stadium, BUILDINGS.Monument];
         let currentSeason = Number(await voting.connect(alice).getCurrentSeason(cityId));
         expect(currentSeason).to.be.equal(1);
 
-        let unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, currentSeason);
+        let unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, buildings, currentSeason);
         expect(unclaimedBuildings.length).to.be.equal(4);
         expect(unclaimedBuildings[0]).to.be.equal(false);
         expect(unclaimedBuildings[1]).to.be.equal(false);
@@ -351,7 +352,7 @@ describe("Voting", function() {
         expect(unclaimedBuildings[3]).to.be.equal(false);
 
         // future season
-        unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, currentSeason+1);
+        unclaimedBuildings = await voting.connect(alice).getUnclaimedBuildings(alice.address, cityId, buildings, currentSeason+1);
         expect(unclaimedBuildings.length).to.be.equal(4);
         expect(unclaimedBuildings[0]).to.be.equal(true);
         expect(unclaimedBuildings[1]).to.be.equal(true);
