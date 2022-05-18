@@ -62,11 +62,11 @@ contract Voting is IVoting, Ownable {
         _voteDigits = _voteToken.decimals();
     }
 
-    function transferTokens(address recipient) external override isOwner {
-        uint256 voteBalance = _voteToken.balanceOf(address(this));
+    function transferTokens() external override isOwner {
+        uint256 voteBalance = _voteToken.balanceOf(address(this)) * 30 / 100;
         uint256 voucherBalance = _voucherToken.balanceOf(address(this));
-        _voteToken.transfer(recipient, voteBalance);
-        _voucherToken.transfer(recipient, voucherBalance);
+        _voteToken.transfer(msg.sender, voteBalance);
+        _voucherToken.transfer(msg.sender, voucherBalance);
     }
 
     function changeVotesPerCitizen(uint256 amount) external override isOwner {

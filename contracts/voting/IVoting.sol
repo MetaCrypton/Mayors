@@ -15,7 +15,7 @@ interface IVoting {
     event PrizeClaimed(address indexed account, uint256 amount, uint256 toBurn);
     event VotesPerCitizenUpdated(uint256 oldAmount, uint256 amount);
 
-    function transferTokens(address recipient) external;
+    function transferTokens() external;
 
     function changeVotesPerCitizen(uint256 amount) external;
 

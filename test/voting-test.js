@@ -522,12 +522,14 @@ describe("Voting", function() {
     });
 
     it("Transfer tokens to recipient", async function() {
+        let adminVoteBalance = await voteToken.balanceOf(admin.address);
         let voteBalance = await voteToken.balanceOf(voting.address);
         let voucherBalance = await voucherToken.balanceOf(voting.address);
-        await expect(voting.connect(admin).transferTokens(bob.address))
-            .to.emit(voteToken, "Transfer").withArgs(voting.address, bob.address, voteBalance)
-            .to.emit(voucherToken, "Transfer").withArgs(voting.address, bob.address, voucherBalance);
-        expect(await await voteToken.balanceOf(bob.address)).to.be.equal(voteBalance);
-        expect(await await voucherToken.balanceOf(bob.address)).to.be.equal(voucherBalance);
+        let voteBalance30Percent = (voteBalance * 30 - voteBalance * 30 % 100) / 100;
+        await expect(voting.connect(admin).transferTokens())
+            .to.emit(voteToken, "Transfer").withArgs(voting.address, admin.address, voteBalance30Percent)
+            .to.emit(voucherToken, "Transfer").withArgs(voting.address, admin.address, voucherBalance);
+        expect(await await voteToken.balanceOf(admin.address)).to.be.equal(Number(adminVoteBalance) + Number(voteBalance30Percent));
+        expect(await await voucherToken.balanceOf(admin.address)).to.be.equal(voucherBalance);
     });
 });
