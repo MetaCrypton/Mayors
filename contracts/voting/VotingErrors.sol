@@ -13,9 +13,6 @@ library VotingErrors {
     error IncorrectPeriod();
     error IncorrectValue();
     error NotWinner();
-    error NoPrize();
     error UnknownCity();
-    error IncorrectSeasonClaim();
-    error IncorrectBuildingClaim();
-    error AlreadyClaimed();
+    error NothingToClaim();
 }

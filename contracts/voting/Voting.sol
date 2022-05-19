@@ -19,6 +19,13 @@ contract Voting is IVoting, Ownable {
     uint256 internal constant PRIZE_RATE = 87;
     uint256 internal constant REWARD_BURN_RATE = 3;
 
+    Building[4] internal claimableBuildings = [
+        Building.Bank,
+        Building.Factory,
+        Building.Stadium,
+        Building.Monument
+    ];
+
     NFT internal _mayor;
     Vote internal _voteToken;
     Voucher internal _voucherToken;
@@ -34,7 +41,7 @@ contract Voting is IVoting, Ownable {
     // regionId => [city id]
     mapping(uint256 => uint256[]) internal _regionToCities;
 
-    // owner address => city id => Building => 0: not exists, >0: season number +1
+    // owner address => city id => BuildingInfo
     mapping(address => mapping(uint256 => BuildingInfo[])) internal _ownerToBuildings;
 
     // owner address => city id => building => prize is claimed
@@ -128,7 +135,6 @@ contract Voting is IVoting, Ownable {
         if (_getBuildingSeason(msg.sender, cityId, newBuilding) > 0) revert VotingErrors.BuildingDuplicate();
         _ownerToBuildings[msg.sender][cityId].push(BuildingInfo({building: newBuilding, season: season}));
 
-
         emit BuildingAdded(msg.sender, cityId, season, newBuilding);
         _voucherToken.transferFrom(msg.sender, address(this), buildingPrice);
     }
@@ -182,14 +188,16 @@ contract Voting is IVoting, Ownable {
             (uint256 prize, uint256 burnPrize) = _claimElectionPrizes(
                 msg.sender, claimInfo.cityId, claimInfo.seasonIds, currentSeason);
             prize += _claimBuildingPrizes(
-                msg.sender, claimInfo.cityId, claimInfo.bulidings, currentSeason);
+                msg.sender, claimInfo.cityId, currentSeason);
 
             totalPrize += prize;
             totalBurn += burnPrize;
+            emit PrizeClaimed(msg.sender, claimInfo.cityId, prize, burnPrize);
         }
 
+        if (totalPrize == 0) revert VotingErrors.NothingToClaim();
+
         // send tokens to the winner
-        emit PrizeClaimed(msg.sender, totalPrize, totalBurn);
         _voteToken.transfer(msg.sender, totalPrize);
 
         // 3% needs to be burned
@@ -201,7 +209,9 @@ contract Voting is IVoting, Ownable {
     }
 
     function getWinner(uint256 cityId, uint256 season) external view override returns(uint256) {
-        return _calculateWinner(season, cityId);
+        uint256 bank = _getBank(cityId, season);
+        if (bank == 0) revert VotingErrors.IncorrectValue();
+        return _calculateWinner(season, cityId, bank);
     }
 
     function getUnclaimedSeasons(
@@ -225,15 +235,14 @@ contract Voting is IVoting, Ownable {
     function getUnclaimedBuildings(
         address account,
         uint256 cityId,
-        Building[] calldata buildings,
         uint256 currentSeason
     ) external view override returns (bool[] memory) {
-        bool[] memory unclaimedBuildings = new bool[](buildings.length);
-        for (uint256 i = 0; i < buildings.length; i++) {
-            Building building = buildings[i];
+        bool[] memory unclaimedBuildings = new bool[](claimableBuildings.length);
+        for (uint256 i = 0; i < claimableBuildings.length; i++) {
+            Building building = claimableBuildings[i];
             uint256 season = _getBuildingSeason(account, cityId, building);
-            if (!_verifySeasonClaim(account, cityId, season, currentSeason)) continue;
-            if (!_verifyBuildingClaim(season, currentSeason, building)) continue;
+            if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
+            if (!_verifyBuildingClaim(account, cityId, season, currentSeason, building)) continue;
             unclaimedBuildings[i] = !_ownerBuildingClaimed[account][cityId][building];
         }
         return unclaimedBuildings;
@@ -243,11 +252,11 @@ contract Voting is IVoting, Ownable {
         address account,
         uint256 cityId,
         uint256[] calldata seasonIds,
-        Building[] calldata buildings
+        uint256 currentSeason
     ) external view override returns(uint256) {
         return (
-            _caluclateElectionPrizes(cityId, seasonIds) +
-            _calculateBuildingPrizes(account, cityId, buildings)
+            _calculateElectionPrizes(account, cityId, seasonIds, currentSeason) +
+            _calculateBuildingPrizes(account, cityId, currentSeason)
         );
     }
 
@@ -276,10 +285,9 @@ contract Voting is IVoting, Ownable {
 
             // verification
             if (!_verifySeasonClaim(account, cityId, season, currentSeason))
-                revert VotingErrors.IncorrectSeasonClaim();
+                revert VotingErrors.IncorrectValue();
 
             // claim
-            if (_ownerElectionClaimed[account][cityId][season]) revert VotingErrors.AlreadyClaimed();
             _ownerElectionClaimed[account][cityId][season] = true;
 
             // calculate prizes
@@ -294,24 +302,19 @@ contract Voting is IVoting, Ownable {
     function _claimBuildingPrizes(
         address account,
         uint256 cityId,
-        Building[] memory buildings,
         uint256 currentSeason
     ) internal returns (uint256){
         uint256 totalPrize = 0;
-
-        uint256 buildingsLength = buildings.length;
-        for (uint256 i = 0; i < buildingsLength; i++) {
-            Building building = buildings[i];
+        for (uint256 i = 0; i < claimableBuildings.length; i++) {
+            Building building = claimableBuildings[i];
             uint256 season = _getBuildingSeason(account, cityId, building);
+            if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
 
             // verification
-            if (!_verifySeasonClaim(account, cityId, season, currentSeason))
-                revert VotingErrors.IncorrectSeasonClaim();
-            if (!_verifyBuildingClaim(season, currentSeason, building))
-                revert VotingErrors.IncorrectBuildingClaim();
+            if (!_verifyBuildingClaim(account, cityId, season, currentSeason, building))
+                revert VotingErrors.IncorrectValue();
 
             // claim
-            if (_ownerBuildingClaimed[account][cityId][building]) revert VotingErrors.AlreadyClaimed();
             _ownerBuildingClaimed[account][cityId][building] = true;
 
             // calculate prizes
@@ -340,10 +343,25 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 season,
         uint256 currentSeason
-    ) internal view returns (bool) {
+    ) internal view returns(bool) {
         return (
             _isRewardPeriod(season, currentSeason) &&
-            _isWinner(account, cityId, season)
+            _isWinner(account, cityId, season) &&
+            !_ownerElectionClaimed[account][cityId][season]
+        );
+    }
+
+    function _verifyBuildingClaim(
+        address account,
+        uint256 cityId,
+        uint256 season,
+        uint256 currentSeason,
+        Building building
+    ) internal view returns(bool) {
+        return (
+            _isRewardPeriod(season, currentSeason) &&
+            _isWinner(account, cityId, season) &&
+            !_ownerBuildingClaimed[account][cityId][building]
         );
     }
 
@@ -412,16 +430,18 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 season
     ) internal view  returns (bool) {
-        return _mayor.ownerOf(_calculateWinner(season, cityId)) == account;
+        uint256 bank = _getBank(cityId, season);
+        return (
+            bank != 0 &&
+            _mayor.ownerOf(_calculateWinner(season, cityId, bank)) == account
+        );
     }
 
     function _calculateWinner(
         uint256 season,
-        uint256 cityId
+        uint256 cityId,
+        uint256 bank
     ) internal view returns(uint256) {
-        uint256 bank = _getBank(cityId, season);
-        if (bank == 0) revert VotingErrors.IncorrectValue();
-
         uint256 random = uint256(keccak256(abi.encodePacked(season, cityId)));
         uint256 winnerRate = random % bank;
         uint256 votesCounter = 0;
@@ -442,13 +462,16 @@ contract Voting is IVoting, Ownable {
         return nominees[nomineesLength - 1].mayorId;
     }
 
-    function _caluclateElectionPrizes(
+    function _calculateElectionPrizes(
+        address account,
         uint256 cityId,
-        uint256[] calldata seasonIds
+        uint256[] calldata seasonIds,
+        uint256 currentSeason
     ) internal view returns(uint256) {
         uint256 totalPrize = 0;
         uint256 seasonsLength = seasonIds.length;
         for (uint256 i = 0; i < seasonsLength; i++) {
+            if (!_verifySeasonClaim(account, cityId, seasonIds[i], currentSeason)) continue;
             uint256 bank = _getBank(cityId, seasonIds[i]);
             totalPrize += _calculateElectionPrize(bank);
         }
@@ -458,15 +481,16 @@ contract Voting is IVoting, Ownable {
     function _calculateBuildingPrizes(
         address account,
         uint256 cityId,
-        Building[] calldata buildings
+        uint256 currentSeason
     ) internal view returns(uint256) {
-        uint256 currentSeason = _seasonNumber(_cities[cityId].regionId);
         uint256 totalPrize = 0;
-        uint256 buildingsLength = buildings.length;
-        for (uint256 i = 0; i < buildingsLength; i++) {
-            uint256 season = _getBuildingSeason(account, cityId, buildings[i]);
-            uint256 bank = _getBuildingBank(cityId, season, currentSeason, buildings[i]);
-            totalPrize += _calculateBuildingPrize(bank, buildings[i]);
+        for (uint256 i = 0; i < claimableBuildings.length; i++) {
+            Building building = claimableBuildings[i];
+            uint256 season = _getBuildingSeason(account, cityId, building);
+            if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
+            if (!_verifyBuildingClaim(account, cityId, season, currentSeason, building)) continue;
+            uint256 bank = _getBuildingBank(cityId, season, currentSeason, building);
+            totalPrize += _calculateBuildingPrize(bank, building);
         }
         return totalPrize;
     }
@@ -554,30 +578,12 @@ contract Voting is IVoting, Ownable {
         return season != 0 && season < currentSeason;
     }
 
-    function _verifyBuildingClaim(
+    function _isBuildingRewardPeriod(
         uint256 season,
         uint256 currentSeason,
         Building building
     ) internal pure returns(bool) {
-        return (
-            _isClaimableBuilding(building) &&
-            _isMonumentRewardPeriod(season, currentSeason, building)
-        );
-    }
-
-    function _isClaimableBuilding(Building building) internal pure returns (bool) {
-        return building == Building.Bank ||
-            building == Building.Factory ||
-            building == Building.Stadium ||
-            building == Building.Monument;
-    }
-
-    function _isMonumentRewardPeriod(
-        uint256 season,
-        uint256 currentSeason,
-        Building building
-    ) internal pure returns(bool) {
-        return (
+        return season != 0  && (
             building != Building.Monument ||
             season + VotingConstants.BUILDING_ACTIVATION_DELAY <= currentSeason
         );

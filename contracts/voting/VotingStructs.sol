@@ -36,6 +36,7 @@ struct Nominee {
     uint256 votes;
 }
 
+// season number starts from 1
 struct BuildingInfo {
     Building building;
     uint256 season;
@@ -44,5 +45,4 @@ struct BuildingInfo {
 struct ClaimInfo {
     uint256 cityId;
     uint256[] seasonIds;
-    Building[] bulidings;
 }

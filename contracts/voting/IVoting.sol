@@ -12,7 +12,7 @@ interface IVoting {
     event BuildingAdded(address indexed owner, uint256 indexed cityId, uint256 indexed season, Building newBuilding);
     event CandidateAdded(uint256 indexed mayorId, uint256 indexed cityId, uint256 votes);
     event CityUpdated(uint256 indexed cityId, bool isOpen);
-    event PrizeClaimed(address indexed account, uint256 amount, uint256 toBurn);
+    event PrizeClaimed(address indexed account, uint256 indexed cityId, uint256 amount, uint256 toBurn);
     event VotesPerCitizenUpdated(uint256 oldAmount, uint256 amount);
 
     function transferTokens() external;
@@ -36,7 +36,7 @@ interface IVoting {
 
     function updateCities(uint256[] calldata citiesIds, bool isOpen) external;
 
-    function claimPrizes(ClaimInfo[] calldata claimInfo) external;
+    function claimPrizes(ClaimInfo[] calldata claimInfos) external;
 
     function getCurrentSeason(uint256 cityId) external view returns (uint256);
     function getWinner(uint256 cityId, uint256 season) external view returns(uint256);
@@ -52,7 +52,6 @@ interface IVoting {
     function getUnclaimedBuildings(
         address account,
         uint256 cityId,
-        Building[] calldata buildings,
         uint256 currentSeason
     ) external view returns (bool[] memory);
 
@@ -60,7 +59,7 @@ interface IVoting {
         address account,
         uint256 cityId,
         uint256[] calldata seasonIds,
-        Building[] calldata buildings
+        uint256 currentSeason
     ) external view returns (uint256);
 
     function calculateVotesPrice(
