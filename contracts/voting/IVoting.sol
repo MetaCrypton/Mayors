@@ -60,8 +60,7 @@ interface IVoting {
         address account,
         uint256 cityId,
         uint256[] calldata seasonIds,
-        Building[] calldata buildings,
-        uint256 currentSeason
+        Building[] calldata buildings
     ) external view returns (uint256);
 
     function calculateVotesPrice(

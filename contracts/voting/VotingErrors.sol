@@ -15,5 +15,7 @@ library VotingErrors {
     error NotWinner();
     error NoPrize();
     error UnknownCity();
+    error IncorrectSeasonClaim();
+    error IncorrectBuildingClaim();
     error AlreadyClaimed();
 }
