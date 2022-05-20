@@ -19,12 +19,7 @@ contract Voting is IVoting, Ownable {
     uint256 internal constant PRIZE_RATE = 87;
     uint256 internal constant REWARD_BURN_RATE = 3;
 
-    Building[4] internal claimableBuildings = [
-        Building.Bank,
-        Building.Factory,
-        Building.Stadium,
-        Building.Monument
-    ];
+    uint8 internal constant CLAIMABLE_BUILDING_LENGTH = 4;
 
     NFT internal _mayor;
     Vote internal _voteToken;
@@ -237,9 +232,9 @@ contract Voting is IVoting, Ownable {
         uint256 cityId,
         uint256 currentSeason
     ) external view override returns (bool[] memory) {
-        bool[] memory unclaimedBuildings = new bool[](claimableBuildings.length);
-        for (uint256 i = 0; i < claimableBuildings.length; i++) {
-            Building building = claimableBuildings[i];
+        bool[] memory unclaimedBuildings = new bool[](CLAIMABLE_BUILDING_LENGTH);
+        for (uint8 i = 0; i < CLAIMABLE_BUILDING_LENGTH; i++) {
+            Building building = _getClaimableBuilding(i);
             uint256 season = _getBuildingSeason(account, cityId, building);
             if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
             if (!_verifyBuildingClaim(account, cityId, season, currentSeason, building)) continue;
@@ -305,8 +300,8 @@ contract Voting is IVoting, Ownable {
         uint256 currentSeason
     ) internal returns (uint256){
         uint256 totalPrize = 0;
-        for (uint256 i = 0; i < claimableBuildings.length; i++) {
-            Building building = claimableBuildings[i];
+        for (uint8 i = 0; i < CLAIMABLE_BUILDING_LENGTH; i++) {
+            Building building = _getClaimableBuilding(i);
             uint256 season = _getBuildingSeason(account, cityId, building);
             if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
 
@@ -484,8 +479,8 @@ contract Voting is IVoting, Ownable {
         uint256 currentSeason
     ) internal view returns(uint256) {
         uint256 totalPrize = 0;
-        for (uint256 i = 0; i < claimableBuildings.length; i++) {
-            Building building = claimableBuildings[i];
+        for (uint8 i = 0; i < CLAIMABLE_BUILDING_LENGTH; i++) {
+            Building building = _getClaimableBuilding(i);
             uint256 season = _getBuildingSeason(account, cityId, building);
             if (!_isBuildingRewardPeriod(season, currentSeason, building)) continue;
             if (!_verifyBuildingClaim(account, cityId, season, currentSeason, building)) continue;
@@ -542,6 +537,14 @@ contract Voting is IVoting, Ownable {
         Building building
     ) internal pure returns (uint256) {
         return bank * _getBuildingRate(building) / 100;
+    }
+
+    function _getClaimableBuilding(uint8 index) internal pure returns(Building) {
+        if (index == 0) return Building.Bank;
+        if (index == 1) return Building.Factory;
+        if (index == 2) return Building.Stadium;
+        if (index == 3) return Building.Monument;
+        return Building.Empty;
     }
 
     function _getBuildingRate(Building building) internal pure returns(uint8) {
