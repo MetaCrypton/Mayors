@@ -8,15 +8,26 @@ async function deploy(contractName, signer, ...args) {
 }
 
 async function main() {
-    const SEASON_1_URI = "https://mayors_1.io";
-    const SEASON_2_URI = "https://mayors_2.io";
+    const MAYORS_NAME = "Mayors"
+    const MAYORS_SYMBOL = "MRS"
+    const MAYORS_BASE_URI = "https://mayorsurl.io";
+
+    const LOOTBOXES_NAME = "Lootboxes"
+    const LOOTBOXES_SYMBOL = "LBS"
+    const LOOTBOXES_BASE_URI = "http://www.lootbox.json"
+
+    const SEASON_1_URI = "season_uri_1";
+    const SEASON_2_URI = "season_uri_2";
+
+    const LOOTBOXES_NUMBER = 30000;
+    const LOOTBOXES_PER_ADDRESS = 3;
+    const NUMBER_IN_LOOTBOXES = 3;
+    const LOOTBOX_PRICE = 100;
+    const LOOTBOXES_UNLOCK_TIMESTAMP = 0;
+    const SEASON_IS_PUBLIC = true;
 
     const LOOTBOXES_BATCH = 1570;
 
-    const LOOTBOXES_CAP = 30000;
-    const LOOTBOXES_PER_ADDRESS = 3;
-    const NUMBER_IN_LOOTBOXES = 3;
-    const PRICE = 100;
     const ALICE_MINT = 100;
     const CHARLIE_MINT = 200;
     const RESALE_PRICE = CHARLIE_MINT;
@@ -56,23 +67,33 @@ async function main() {
 
     const rarityCalculator = await deploy("RarityCalculator", admin);
     console.log("Rarity calculator:", rarityCalculator.address);
+
     let nft = await deploy(
         "NFT",
         admin,
-        "Mayors",
-        "MRS",
-        admin.address
+        MAYORS_NAME,
+        MAYORS_SYMBOL,
+        MAYORS_BASE_URI,
+        admin.address,
     );
     console.log("NFT:", nft.address);
+    console.log("--- name: ", MAYORS_NAME);
+    console.log("--- symbol: ", MAYORS_SYMBOL);
+    console.log("--- baseUrl: ", MAYORS_BASE_URI);
+    console.log("--- owner: ", admin.address);
+
     let lootbox = await deploy(
         "Lootbox",
         admin,
-        "Lootboxes",
-        "LBS",
-        "",
-        admin.address
+        LOOTBOXES_NAME,
+        LOOTBOXES_SYMBOL,
+        admin.address,
     );
     console.log("Lootbox:", lootbox.address);
+    console.log("--- name: ", LOOTBOXES_NAME);
+    console.log("--- symbol: ", LOOTBOXES_SYMBOL);
+    console.log("--- owner: ", admin.address);
+
     let marketplace = await deploy(
         "Marketplace",
         admin,
@@ -82,23 +103,21 @@ async function main() {
             token1.address,
             token2.address,
             admin.address,
-            PRICE,
-            LOOTBOXES_PER_ADDRESS,
-            MERKLE_ROOT
         ],
-        LOOTBOXES_CAP,
-        SEASON_1_URI,
-        admin.address
+        admin.address,
     );
     console.log("Marketplace:", marketplace.address);
 
     await lootbox.connect(admin).updateConfig(
         [
-            NUMBER_IN_LOOTBOXES,
             marketplace.address,
-            nft.address
-        ]
+            nft.address,
+        ],
+        LOOTBOXES_BASE_URI,
     );
+    console.log("Lootbox config was updated:", lootbox.address);
+    console.log("--- baseUri: ", LOOTBOXES_BASE_URI);
+
     await nft.connect(admin).updateConfig(
         [
             lootbox.address,
@@ -106,24 +125,55 @@ async function main() {
             rarityCalculator.address
         ]
     );
+    console.log("NFT config was updated:", nft.address);
+
+    let seasonId = 0;
+    let startTimestamp = 0;
+    let endTimestamp = 1751570550;
+    let nftStartIndex = 0;
+    const season1 = [
+        startTimestamp,
+        endTimestamp,
+        LOOTBOXES_NUMBER,
+        LOOTBOX_PRICE,
+        LOOTBOXES_PER_ADDRESS,
+        LOOTBOXES_UNLOCK_TIMESTAMP,
+        NUMBER_IN_LOOTBOXES,
+        nftStartIndex,
+        MERKLE_ROOT,
+        SEASON_IS_PUBLIC,
+        SEASON_1_URI,
+    ]
+    await marketplace.connect(admin).addNewSeasons([season1]);
+    console.log("New season:");
+    console.log("--- season0.startTimestamp: ", startTimestamp);
+    console.log("--- season0.endTimestamp: ", endTimestamp);
+    console.log("--- season0.lootboxesNumber: ", LOOTBOXES_NUMBER);
+    console.log("--- season0.lootboxPrice: ", LOOTBOX_PRICE);
+    console.log("--- season0.lootboxesPerAddress: ", LOOTBOXES_PER_ADDRESS);
+    console.log("--- season0.lootboxesUnlockTimestamp: ", LOOTBOXES_UNLOCK_TIMESTAMP);
+    console.log("--- season0.nftNumberInLootbox: ", NUMBER_IN_LOOTBOXES);
+    console.log("--- season0.nftStartIndex: ", nftStartIndex);
+    console.log("--- season0.merkleRoot: ", MERKLE_ROOT);
+    console.log("--- season0.isPublic: ", SEASON_IS_PUBLIC);
+    console.log("--- season0.uri: ", SEASON_1_URI);
 
     await token1.connect(admin).mint(alice.address, ALICE_MINT);
     await token1.connect(admin).mint(bob.address, BOB_MINT);
     await token2.connect(admin).mint(charlie.address, CHARLIE_MINT);
+    await marketplace.connect(admin).addToWhiteList(seasonId, [alice.address, bob.address]);
 
-    await marketplace.connect(admin).addToWhiteList([alice.address, bob.address]);
-
-
-
+    // alice buys a lootbox
     assert.equal(await token1.balanceOf(alice.address), ALICE_MINT);
     assert.equal(await token1.balanceOf(admin.address), 0);
 
-    await token1.connect(alice).approve(marketplace.address, PRICE);
-    await marketplace.connect(alice).buyLootbox();
+    await token1.connect(alice).approve(marketplace.address, LOOTBOX_PRICE);
+    await marketplace.connect(alice).buyLootbox(seasonId);
 
     assert.equal(await token1.balanceOf(alice.address), 0);
-    assert.equal(await token1.balanceOf(admin.address), PRICE);
+    assert.equal(await token1.balanceOf(admin.address), LOOTBOX_PRICE);
 
+    // alice sells the lootbox to charlie
     assert.equal(await token2.balanceOf(alice.address), 0);
     assert.equal(await token2.balanceOf(charlie.address), CHARLIE_MINT);
     assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), alice.address);
@@ -138,8 +188,10 @@ async function main() {
     assert.equal(await token2.balanceOf(charlie.address), 0);
     assert.equal(await lootbox.ownerOf(LOOTBOX_ID_0), charlie.address);
 
-    await lootbox.connect(charlie).reveal(0);
+    // charlie reveal lootbox
+    await lootbox.connect(charlie).reveal(LOOTBOX_ID_0);
 
+    // check nfts
     for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
         assert.equal(await nft.ownerOf(i), charlie.address);
     }
@@ -150,19 +202,19 @@ async function main() {
         let voteDiscount = await nft.getVoteDiscount(i);
 
         if (rarity == RARITIES.common) {
-            assert.equal(voteDiscount, 100);
+            assert.equal(voteDiscount, 0);
             assert.isAtMost(hashrate, 200);
             assert.isAtLeast(hashrate, 100);
         } else if (rarity == RARITIES.rare) {
-            assert.equal(voteDiscount, 100);
+            assert.equal(voteDiscount, 0);
             assert.isAtMost(hashrate, 550);
             assert.isAtLeast(hashrate, 270);
         } else if (rarity == RARITIES.epic) {
-            assert.equal(voteDiscount, 100);
+            assert.equal(voteDiscount, 0);
             assert.isAtMost(hashrate, 2750);
             assert.isAtLeast(hashrate, 1250);
         } else if (rarity == RARITIES.legendary) {
-            assert.equal(voteDiscount, 100);
+            assert.equal(voteDiscount, 0);
             assert.isAtMost(hashrate, 14000);
             assert.isAtLeast(hashrate, 6500);
         }
@@ -170,6 +222,7 @@ async function main() {
 
     await token2.connect(admin).transfer(alice.address, RESALE_FEE);
 
+    // charlie sells one of the nfts to alice
     assert.equal(await token2.balanceOf(alice.address), RESALE_PRICE);
     assert.equal(await token2.balanceOf(charlie.address), 0);
     assert.equal(await nft.ownerOf(MAYOR_ID_0), charlie.address);
@@ -184,6 +237,7 @@ async function main() {
     assert.equal(await token2.balanceOf(admin.address), RESALE_FEE);
     assert.equal(await nft.ownerOf(MAYOR_ID_0), alice.address);
 
+    // check nfts
     for (let i = 0; i < NUMBER_IN_LOOTBOXES; i++) {
         await nft.updateLevel(i);
 
@@ -191,22 +245,22 @@ async function main() {
         let hashrate = await nft.getHashrate(i);
         let voteDiscount = await nft.getVoteDiscount(i);
 
-        assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+1);
+        assert.equal(await nft.tokenURI(i), `${MAYORS_BASE_URI}/${SEASON_1_URI}/${i}/${i}_1.json`);
 
         if (rarity == RARITIES.common) {
-            assert.equal(voteDiscount, 99);
+            assert.equal(voteDiscount, 1);
             assert.isAtMost(hashrate, 800);
             assert.isAtLeast(hashrate, 400);
         } else if (rarity == RARITIES.rare) {
-            assert.equal(voteDiscount, 98);
+            assert.equal(voteDiscount, 2);
             assert.isAtMost(hashrate, 1650);
             assert.isAtLeast(hashrate, 810);
         } else if (rarity == RARITIES.epic) {
-            assert.equal(voteDiscount, 96);
+            assert.equal(voteDiscount, 4);
             assert.isAtMost(hashrate, 6875);
             assert.isAtLeast(hashrate, 3125);
         } else if (rarity == RARITIES.legendary) {
-            assert.equal(voteDiscount, 94);
+            assert.equal(voteDiscount, 6);
             assert.isAtMost(hashrate, 28000);
             assert.isAtLeast(hashrate, 13000);
         }
@@ -219,22 +273,22 @@ async function main() {
         let hashrate = await nft.getHashrate(i);
         let voteDiscount = await nft.getVoteDiscount(i);
 
-        assert.equal(await nft.tokenURI(i), SEASON_1_URI+"/"+rarity+"/"+2);
+        assert.equal(await nft.tokenURI(i), `${MAYORS_BASE_URI}/${SEASON_1_URI}/${i}/${i}_2.json`);
 
         if (rarity == RARITIES.common) {
-            assert.equal(voteDiscount, 98);
+            assert.equal(voteDiscount, 2);
             assert.isAtMost(hashrate, 2400);
             assert.isAtLeast(hashrate, 1200);
         } else if (rarity == RARITIES.rare) {
-            assert.equal(voteDiscount, 96);
+            assert.equal(voteDiscount, 4);
             assert.isAtMost(hashrate, 4125);
             assert.isAtLeast(hashrate, 2025);
         } else if (rarity == RARITIES.epic) {
-            assert.equal(voteDiscount, 94);
+            assert.equal(voteDiscount, 6);
             assert.isAtMost(hashrate, 13750);
             assert.isAtLeast(hashrate, 6250);
         } else if (rarity == RARITIES.legendary) {
-            assert.equal(voteDiscount, 92);
+            assert.equal(voteDiscount, 8);
             assert.isAtMost(hashrate, 42000);
             assert.isAtLeast(hashrate, 19500);
         }
