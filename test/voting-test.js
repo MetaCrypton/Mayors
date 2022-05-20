@@ -163,7 +163,15 @@ describe("Voting", function() {
         mayorId = 0;
         mayorId2 = 1;
         mayorId3 = 2;
-        voting = await deploy("Voting", admin, nft.address, voteToken.address, voucherToken.address, VOTES_PER_CITIZEN, admin.address);
+        voting = await deploy(
+            "Voting",
+            admin,
+            nft.address,
+            voteToken.address,
+            voucherToken.address,
+            VOTES_PER_CITIZEN,
+            admin.address
+        );
 
         await voteToken.connect(admin).updateConfig(
             [
@@ -584,7 +592,7 @@ describe("Voting", function() {
         await expect(voting.connect(admin).transferTokens())
             .to.emit(voteToken, "Transfer").withArgs(voting.address, admin.address, voteBalance30Percent)
             .to.emit(voucherToken, "Transfer").withArgs(voting.address, admin.address, voucherBalance);
-        expect(await await voteToken.balanceOf(admin.address)).to.be.equal(Number(adminVoteBalance) + Number(voteBalance30Percent));
-        expect(await await voucherToken.balanceOf(admin.address)).to.be.equal(voucherBalance);
+        expect(await voteToken.balanceOf(admin.address)).to.be.equal(Number(adminVoteBalance) + Number(voteBalance30Percent));
+        expect(await voucherToken.balanceOf(admin.address)).to.be.equal(voucherBalance);
     });
 });
