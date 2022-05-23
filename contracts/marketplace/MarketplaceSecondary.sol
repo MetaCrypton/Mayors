@@ -23,6 +23,7 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
 
     function removeItemFromSale(Item calldata item) external override {
         if (IERC721(item.addr).ownerOf(item.tokenId) != msg.sender) revert MarketplaceErrors.NotItemOwner();
+        if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
 
         bytes32 id = keccak256(abi.encode(item));
         uint256 price = _itemPrice[id];
@@ -35,6 +36,7 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
     function buyItem(Item calldata item) external override {
         address owner = IERC721(item.addr).ownerOf(item.tokenId);
         if (owner == msg.sender) revert MarketplaceErrors.AlreadyOwner();
+        if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
 
         bytes32 id = keccak256(abi.encode(item));
         uint256 price = _itemPrice[id];
