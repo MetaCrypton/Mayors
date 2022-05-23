@@ -28,7 +28,6 @@ contract NFTMayor is INFTMayor, INFTEvents, NFTERC721, NFTModifiers {
     }
 
     function updateLevel(uint256 tokenId) external override isExistingToken(tokenId) isOwner {
-        if (_config.levelUpgradesAddress != msg.sender) revert NFTErrors.NotEligible();
         Level currentLevel = _levels[tokenId];
         if (uint8(currentLevel) == NFTConstants.MAX_LEVEL) revert NFTErrors.MaxLevel();
         _levels[tokenId] = Level(uint8(currentLevel) + 1);

@@ -44,6 +44,7 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
             if (season.startTimestamp > season.endTimestamp) revert MarketplaceErrors.WrongTimestamps();
             if (season.lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
             if (season.lootboxPrice == 0) revert MarketplaceErrors.ZeroPrice();
+            if (season.lootboxesPerAddress == 0) revert MarketplaceErrors.ZeroLootboxesPerAddress();
             if (bytes(season.uri).length == 0) revert MarketplaceErrors.NoURI();
             _seasons.push(season);
 
