@@ -272,7 +272,7 @@ describe("Integration", function() {
         await lootbox.connect(alice).approve(marketplace.address, LOOTBOX_ID_0);
         await marketplace.connect(alice).setItemForSale({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, RESALE_PRICE);
         await token2.connect(charlie).approve(marketplace.address, RESALE_PRICE);
-        await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: LOOTBOX_ID_0});
+        await marketplace.connect(charlie).buyItem({addr: lootbox.address, tokenId: LOOTBOX_ID_0}, RESALE_PRICE);
 
         assert.equal(await token2.balanceOf(alice.address), RESALE_INCOME);
         assert.equal(await token2.balanceOf(admin.address), RESALE_FEE);
@@ -326,7 +326,7 @@ describe("Integration", function() {
         await nft.connect(charlie).approve(marketplace.address, MAYOR_ID_0);
         await marketplace.connect(charlie).setItemForSale({addr: nft.address, tokenId: MAYOR_ID_0}, RESALE_PRICE);
         await token2.connect(alice).approve(marketplace.address, RESALE_PRICE);
-        await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_0});
+        await marketplace.connect(alice).buyItem({addr: nft.address, tokenId: MAYOR_ID_0}, RESALE_PRICE);
 
         assert.equal(await token2.balanceOf(alice.address), 0);
         assert.equal(await token2.balanceOf(charlie.address), RESALE_INCOME);

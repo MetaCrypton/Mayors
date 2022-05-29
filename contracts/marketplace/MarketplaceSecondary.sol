@@ -33,19 +33,20 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
         emit ItemPriceRemoved(item.addr, item.tokenId);
     }
 
-    function buyItem(Item calldata item) external override {
+    function buyItem(Item calldata item, uint256 price) external override {
         address owner = IERC721(item.addr).ownerOf(item.tokenId);
         if (owner == msg.sender) revert MarketplaceErrors.AlreadyOwner();
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
 
         bytes32 id = keccak256(abi.encode(item));
-        uint256 price = _itemPrice[id];
-        if (price == 0) revert MarketplaceErrors.NotOnSale();
+        uint256 sellPrice = _itemPrice[id];
+        if (sellPrice == 0) revert MarketplaceErrors.NotOnSale();
+        if (sellPrice != price) revert MarketplaceErrors.NotValidPrice();
 
         _itemPrice[id] = 0;
-        emit ItemBought(item.addr, item.tokenId, price);
+        emit ItemBought(item.addr, item.tokenId, sellPrice);
 
-        _payForItem(price, owner);
+        _payForItem(sellPrice, owner);
 
         IERC721(item.addr).transferFrom(owner, msg.sender, item.tokenId);
     }
