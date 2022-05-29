@@ -213,7 +213,6 @@ describe("Integration", function() {
         await nft.connect(admin).updateConfig(
             [
                 lootbox.address,
-                admin.address,
                 rarityCalculator.address
             ]
         );
