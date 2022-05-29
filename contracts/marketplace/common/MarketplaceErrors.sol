@@ -17,6 +17,7 @@ library MarketplaceErrors {
     error NotItemOwner();
     error UnexistingSeason();
     error ZeroPrice();
+    error ZeroLootboxesPerAddress();
     error NoURI();
     error SeasonNotStarted();
     error SeasonFinished();

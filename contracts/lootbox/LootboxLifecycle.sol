@@ -31,6 +31,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
 
         _burn(tokenId);
         delete _seasonInfo[tokenId];
+        delete _unlockTimestamp[tokenId];
 
         return tokenIds;
     }
@@ -40,7 +41,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         string calldata seasonUri,
         address owner,
         uint256 unlockTimestamp
-    ) external override isMarketplaceOrOwner returns (uint256 tokenId) {
+    ) external override isMarketplaceOrOwner returns (uint256) {
         uint256 id = _tokenIdCounter++;
         _mint(owner, id);
         _seasonInfo[id] = SeasonInfo(seasonId, seasonUri);

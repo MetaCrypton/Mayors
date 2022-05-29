@@ -9,7 +9,7 @@ interface IMarketplaceSecondary {
 
     function removeItemFromSale(Item calldata item) external;
 
-    function buyItem(Item calldata item) external;
+    function buyItem(Item calldata item, uint256 price) external;
 
     function getItemPrice(Item calldata item) external view returns (uint256);
 }

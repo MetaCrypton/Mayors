@@ -41,10 +41,7 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
         if (seasonsLength == 0) revert MarketplaceErrors.NoSeasons();
         for (uint256 i = 0; i < seasonsLength; i++) {
             Season memory season = seasons[i];
-            if (season.startTimestamp > season.endTimestamp) revert MarketplaceErrors.WrongTimestamps();
-            if (season.lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
-            if (season.lootboxPrice == 0) revert MarketplaceErrors.ZeroPrice();
-            if (bytes(season.uri).length == 0) revert MarketplaceErrors.NoURI();
+            _verifyNewSeason(season);
             _seasons.push(season);
 
             emit SeasonAdded(
@@ -57,5 +54,13 @@ contract MarketplaceConfiguration is IMarketplaceConfiguration, IMarketplaceEven
                 season.uri
             );
         }
+    }
+
+    function _verifyNewSeason(Season memory season) internal pure {
+        if (season.startTimestamp > season.endTimestamp) revert MarketplaceErrors.WrongTimestamps();
+        if (season.lootboxesNumber == 0) revert MarketplaceErrors.EmptySeason();
+        if (season.lootboxPrice == 0) revert MarketplaceErrors.ZeroPrice();
+        if (season.lootboxesPerAddress == 0) revert MarketplaceErrors.ZeroLootboxesPerAddress();
+        if (bytes(season.uri).length == 0) revert MarketplaceErrors.NoURI();
     }
 }

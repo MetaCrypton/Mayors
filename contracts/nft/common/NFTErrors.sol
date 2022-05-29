@@ -7,7 +7,6 @@ library NFTErrors {
     error SameAddress();
     error SameConfig();
     error SameRates();
-    error NotEligible();
     error WrongRarity();
     error Overflow();
     error UnexistingToken();

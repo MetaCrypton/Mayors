@@ -180,7 +180,6 @@ async function main() {
     await nft.connect(admin).updateConfig(
         [
             lootboxAddress,
-            admin.address,
             rarityCalculatorAddress,
         ]
     )
