@@ -15,6 +15,7 @@ library MarketplaceErrors {
     error SameConfig();
     error NotValidPrice();
     error NotItemOwner();
+    error NotValidBuyer();
     error UnexistingSeason();
     error ZeroPrice();
     error ZeroLootboxesPerAddress();
