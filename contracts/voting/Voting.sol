@@ -13,8 +13,8 @@ import "./VotingStructs.sol";
 import "./VotingErrors.sol";
 
 contract Voting is IVoting, Ownable {
-    uint256 internal constant VOTING_DURATION = 1 days;
-    uint256 internal constant GOVERNANCE_DURATION = 6 days;
+    uint256 internal constant VOTING_DURATION = 1 minutes;
+    uint256 internal constant GOVERNANCE_DURATION = 6 minutes;
 
     uint256 internal constant PRIZE_RATE = 87;
     uint256 internal constant REWARD_BURN_RATE = 3;
