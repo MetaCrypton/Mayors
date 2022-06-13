@@ -12,5 +12,5 @@ contract MarketplaceStorage is OwnableStorage {
     mapping(uint256 => mapping(address => bool)) internal _whiteList;
     mapping(uint256 => mapping(address => uint256)) internal _lootboxesBought;
 
-    mapping(bytes32 => uint256) internal _itemPrice;
+    mapping(bytes32 => ItemSale) internal _itemSale;
 }

@@ -25,6 +25,11 @@ struct Item {
     uint256 tokenId;
 }
 
+struct ItemSale {
+    address seller;
+    uint256 price;
+}
+
 struct MarketplaceConfig {
     Lootbox lootbox;
     NFT nft;

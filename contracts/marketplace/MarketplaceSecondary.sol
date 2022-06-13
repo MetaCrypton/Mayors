@@ -15,9 +15,10 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
         if (IERC721(item.addr).ownerOf(item.tokenId) != msg.sender) revert MarketplaceErrors.NotItemOwner();
 
         bytes32 id = keccak256(abi.encode(item));
-        if (_itemPrice[id] == price) revert MarketplaceErrors.SameValue();
+        if (_itemSale[id].price == price) revert MarketplaceErrors.SameValue();
 
-        _itemPrice[id] = price;
+        _itemSale[id].price = price;
+        _itemSale[id].seller = msg.sender;
         emit ItemPriceSet(item.addr, item.tokenId, price);
     }
 
@@ -26,10 +27,9 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
 
         bytes32 id = keccak256(abi.encode(item));
-        uint256 price = _itemPrice[id];
-        if (price == 0) revert MarketplaceErrors.NotOnSale();
+        if (_itemSale[id].price == 0 || _itemSale[id].seller == address(0)) revert MarketplaceErrors.NotOnSale();
 
-        _itemPrice[id] = 0;
+        delete _itemSale[id];
         emit ItemPriceRemoved(item.addr, item.tokenId);
     }
 
@@ -39,11 +39,13 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();
 
         bytes32 id = keccak256(abi.encode(item));
-        uint256 sellPrice = _itemPrice[id];
-        if (sellPrice == 0) revert MarketplaceErrors.NotOnSale();
+        uint256 sellPrice = _itemSale[id].price;
+        address seller = _itemSale[id].seller;
+        if (sellPrice == 0 || seller == address(0)) revert MarketplaceErrors.NotOnSale();
         if (sellPrice != price) revert MarketplaceErrors.NotValidPrice();
+        if (seller == msg.sender) revert MarketplaceErrors.NotValidBuyer();
 
-        _itemPrice[id] = 0;
+        delete _itemSale[id];
         emit ItemBought(item.addr, item.tokenId, sellPrice);
 
         _payForItem(sellPrice, owner);
@@ -52,9 +54,9 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
     }
 
     function getItemPrice(Item calldata item) external view override returns (uint256) {
-        uint256 price = _itemPrice[keccak256(abi.encode(item))];
-        if (price == 0) revert MarketplaceErrors.NotOnSale();
-        return price;
+        ItemSale storage itemSale = _itemSale[keccak256(abi.encode(item))];
+        if (itemSale.price == 0 || itemSale.seller == address(0)) revert MarketplaceErrors.NotOnSale();
+        return itemSale.price;
     }
 
     function _payForItem(uint256 price, address owner) internal {
