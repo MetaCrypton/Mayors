@@ -6,7 +6,8 @@
     "test": "npm run prettier && npm run lint && npx hardhat test",
     "compile": "npm run prettier && npm run lint && npx hardhat compile",
     "prettier": "prettier --write 'contracts/**/*.sol'",
-    "lint": "solhint 'contracts/**/*.sol'"
+    "lint": "solhint 'contracts/**/*.sol'",
+    "build-contracts": "sol-merger \"./contracts/*/*.sol\" ./build"
   },
   "repository": {
     "type": "git",
@@ -44,8 +45,8 @@
     "hardhat-abi-exporter": "^2.0.8",
     "hardhat-deploy": "^0.7.0-beta.44",
     "hardhat-deploy-ethers": "^0.3.0-beta.7",
-    "hardhat-gas-reporter": "^1.0.4",
-    "mocha": "^6.2.2",
+    "hardhat-gas-reporter": "^1.0.8",
+    "mocha": "^6.2.3",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "rimraf": "^3.0.0",
@@ -57,5 +58,9 @@
     "typescript": "^3.7.3",
     "web3": "^1.6.1",
     "web3-utils": "^1.6.1"
+  },
+  "dependencies": {
+    "@poanet/solidity-flattener": "^3.0.7",
+    "sol-merger": "^4.1.1"
   }
 }
