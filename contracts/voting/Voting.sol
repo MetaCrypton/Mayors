@@ -146,6 +146,8 @@ contract Voting is IVoting, Ownable {
         if (_mayor.ownerOf(mayorId) != msg.sender) revert VotingErrors.WrongMayor();
 
         uint256 seasonNumber = _seasonNumber(city.regionId);
+        _verifyAlreadyNominated(cityId, seasonNumber, mayorId);
+
         uint256 citizenVotes = city.population * _votesPerCitizen / 10 ** _voteDigits;
         if (votes > (citizenVotes - _getBank(cityId, seasonNumber))) revert VotingErrors.VotesBankExceeded();
 
@@ -358,6 +360,18 @@ contract Voting is IVoting, Ownable {
             _isWinner(account, cityId, season) &&
             !_ownerBuildingClaimed[account][cityId][building]
         );
+    }
+
+    function _verifyAlreadyNominated(
+        uint256 cityId,
+        uint256 season,
+        uint256 mayorId
+    ) internal view {
+        Nominee[] storage nominees = _cityToNominees[cityId][season];
+        uint256 nomineesLength = nominees.length;
+        for (uint256 i = 0; i < nomineesLength; i++) {
+            if (nominees[i].mayorId == mayorId) revert VotingErrors.AlreadyNominated();
+        }
     }
 
     function _seasonNumber(uint256 regionId) internal view returns(uint256) {
