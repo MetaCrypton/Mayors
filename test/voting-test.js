@@ -250,6 +250,11 @@ describe("Voting", function() {
         await expect(voting.connect(alice).nominate(mayorId2, 2, votesAmount)).to.emit(voting, "CandidateAdded").withArgs(mayorId2, 2, votesAmount);
     });
 
+    it("Does not allow to nominate the same mayor again", async function() {
+        let votesAmount = 200;
+        await expect(voting.connect(alice).nominate(mayorId2, 2, votesAmount)).to.revertedWith("AlreadyNominated()");
+    });
+
     it("Does not add a building in the incorrect city", async function() {
         await expect(voting.connect(alice).addBuilding(999, BUILDINGS.Hospital)).to.be.revertedWith("UnknownCity");
     });
