@@ -33,7 +33,7 @@ contract MarketplaceSecondary is IMarketplaceSecondary, IMarketplaceEvents, Mark
         emit ItemPriceRemoved(item.addr, item.tokenId);
     }
 
-    function buyItem(Item calldata item, uint256 price) external override {
+    function buyItem(Item calldata item, uint256 price) external nonReentrant override {
         address owner = IERC721(item.addr).ownerOf(item.tokenId);
         if (owner == msg.sender) revert MarketplaceErrors.AlreadyOwner();
         if (!_isTradableItem(item.addr)) revert MarketplaceErrors.NotTradable();

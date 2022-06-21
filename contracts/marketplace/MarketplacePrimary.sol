@@ -22,7 +22,7 @@ contract MarketplacePrimary is IMarketplacePrimary, IMarketplaceEvents, Ownable,
         return _buyLootbox(seasonId, season);
     }
 
-    function buyLootbox(uint256 seasonId) external override returns (uint256) {
+    function buyLootbox(uint256 seasonId) external nonReentrant override returns (uint256) {
         Season storage season = _verifySeason(seasonId, 1);
 
         if (!_whiteList[seasonId][msg.sender]) revert MarketplaceErrors.NotInWhiteList();

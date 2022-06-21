@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 
 import "./MarketplaceStructs.sol";
 import "../../common/ownership/OwnableStorage.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract MarketplaceStorage is OwnableStorage {
+contract MarketplaceStorage is ReentrancyGuard, OwnableStorage {
     MarketplaceConfig internal _config;
 
     Season[] internal _seasons;

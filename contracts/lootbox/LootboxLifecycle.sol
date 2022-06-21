@@ -2,11 +2,12 @@
 // Copyright © 2021 Anton "BaldyAsh" Grigorev. All rights reserved.
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./LootboxERC721.sol";
 import "./common/LootboxErrors.sol";
 import "../marketplace/interfaces/IMarketplace.sol";
 
-contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
+contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721, ReentrancyGuard {
     modifier isMarketplaceOrOwner() {
         if (msg.sender != _config.marketplaceAddress && msg.sender != _owner) {
             revert LootboxErrors.NoPermission();
@@ -14,7 +15,7 @@ contract LootboxLifecycle is ILootboxLifecycle, ILootboxEvents, LootboxERC721 {
         _;
     }
 
-    function reveal(uint256 tokenId) external override returns (uint256[] memory tokenIds) {
+    function reveal(uint256 tokenId) external nonReentrant override returns (uint256[] memory tokenIds) {
         if (!_isApprovedOrOwner(msg.sender, tokenId)) revert LootboxErrors.NoPermission();
         // solhint-disable-next-line not-rely-on-time
         if (_unlockTimestamp[tokenId] > block.timestamp) revert LootboxErrors.NotUnlocked();
