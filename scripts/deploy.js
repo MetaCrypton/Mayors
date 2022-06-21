@@ -44,7 +44,7 @@ async function deployLootbox(admin) {
     );
 }
 
-async function deployMarketplace(admin, nftAddress, lootboxAddress, token1Address, token2Address) {
+async function deployMarketplace(admin, nftAddress, lootboxAddress, token1Address, voteAddress) {
     return await deploy(
         "Marketplace",
         admin,
@@ -52,7 +52,7 @@ async function deployMarketplace(admin, nftAddress, lootboxAddress, token1Addres
             lootboxAddress,
             nftAddress,
             token1Address,
-            token2Address,
+            voteAddress,
             admin.address,
         ],
         admin.address
@@ -119,9 +119,16 @@ async function deployVoting(admin, nftAddress, voteTokenAddress, voucherTokenAdd
 
 
 async function main() {
-    let token1Address = "0x1E66e23920C4D0fd2B8102804D7E5b2Cc5Bfb10A";
-    let token2Address = "0xF79660f21C004C31683f248b91C357cfe5833ACE";
-    let rarityCalculatorAddress = "0x716Af5C2FE11d8C23eD2f2a8F2f89082a8254281";
+    // Kovan
+    // let token1Address = "0x1E66e23920C4D0fd2B8102804D7E5b2Cc5Bfb10A";
+    // let token2Address = "0xF79660f21C004C31683f248b91C357cfe5833ACE";
+    // let rarityCalculatorAddress = "0x716Af5C2FE11d8C23eD2f2a8F2f89082a8254281";
+
+    // BSC Testnet
+    // token1 - BUSD, token2 - Vote$
+    let token1Address = "0x78867bbeef44f2326bf8ddd1941a4439382ef2a7";
+    let rarityCalculatorAddress = "0xe47d896Cde01be4864eFdB0F91cF9ABB839978aE";
+
     let nftAddress;
     let lootboxAddress;
     let marketplaceAddress;
@@ -134,8 +141,11 @@ async function main() {
     console.log("Deploying contracts with the account:", admin.address);
     console.log("Account balance:", (await admin.getBalance()).toString());
 
-    console.log("Token 1:", token1Address);
-    console.log("Token 2:", token2Address);
+    let voteToken = await deployVoteToken(admin);
+    voteTokenAddress = voteToken.address;
+
+    console.log("Token 1(BUSD):", token1Address);
+    console.log("Token 2(Vote$):", voteTokenAddress);
     console.log("Rarity calculator:", rarityCalculatorAddress);
 
     let nft = await deployNFT(admin);
@@ -146,13 +156,9 @@ async function main() {
     lootboxAddress = lootbox.address;
     console.log("Lootbox:", lootboxAddress);
 
-    let marketplace = await deployMarketplace(admin, nftAddress, lootboxAddress, token1Address, token2Address);
+    let marketplace = await deployMarketplace(admin, nftAddress, lootboxAddress, token1Address, voteTokenAddress);
     marketplaceAddress = marketplace.address;
     console.log("Marketplace:", marketplaceAddress);
-
-    let voteToken = await deployVoteToken(admin);
-    voteTokenAddress = voteToken.address;
-    console.log("Vote$ token:", voteTokenAddress);
 
     let voucherToken = await deployVoucherToken(admin, ethers.constants.AddressZero);
     voucherTokenAddress = voucherToken.address;
