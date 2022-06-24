@@ -11,11 +11,6 @@ const LOOTBOXES_BASE_URI = "http://www.lootbox.json"
 const VOTE_TOKEN_NAME = "Votes token"
 const VOTE_TOKEN_SYMBOL = "Vote$"
 
-const VOUCHER_TOKEN_NAME = "Voucher token"
-const VOUCHER_TOKEN_SYMBOL = "BVoucher"
-
-const VOTES_PER_CITIZEN = 100;
-
 
 async function deploy(contractName, signer, ...args) {
     const Factory = await ethers.getContractFactory(contractName, signer)
@@ -69,62 +64,81 @@ async function deployVoteToken(admin) {
     );
 }
 
-async function deployVoucherToken(admin, stakingAddress) {
-    return await deploy(
-        "Voucher",
-        admin,
-        VOUCHER_TOKEN_NAME,
-        VOUCHER_TOKEN_SYMBOL,
-        [
-            stakingAddress,
-        ],
-        admin.address
-    );
-}
+const ADMIN_MINT = 300;
 
-async function deployStaking(admin, voteTokenAddress, voucherTokenAddress) {
-    return await deploy(
-        "Staking",
-        admin,
+const SEASON_1_URI = "season_uri_1";
+
+const MERKLE_ROOT = "0xef632875969c3f4f26e5150b180649bf68b4ead8eef4f253dee7559f2e2d7e80";
+
+const LOOTBOXES_NUMBER = 30000;
+const LOOTBOXES_PER_ADDRESS = 3;
+const NUMBER_IN_LOOTBOXES = 3;
+const LOOTBOX_PRICE = 100;
+const LOOTBOXES_UNLOCK_TIMESTAMP = 0;
+const SEASON_IS_PUBLIC = true;
+
+async function testData(marketplace, lootboxAddress, nftAddress, voteTokenAddress) {
+    const [admin] = await ethers.getSigners();
+
+    let token1 = await deploy("Token", admin, "Payment token 1", "PTN1", admin.address);
+    console.log("Token 1:", token1.address);
+
+    await marketplace.connect(admin).updateConfig(
         [
+            lootboxAddress,
+            nftAddress,
+            token1.address,
             voteTokenAddress,
-            voucherTokenAddress,
+            admin.address,
         ],
-        admin.address
-    );
-}
+    )
 
-async function deployThriftbox(admin, voteTokenAddress) {
-    return await deploy(
-        "Thriftbox",
-        admin,
-        [
-            voteTokenAddress,
-        ],
-        admin.address,
-    );
-}
+    let seasonId = 0;
+    let startTimestamp = 0;
+    let endTimestamp = 1751570550;
+    let nftStartIndex = 0;
+    const season1 = [
+        startTimestamp,
+        endTimestamp,
+        LOOTBOXES_NUMBER,
+        LOOTBOX_PRICE,
+        LOOTBOXES_PER_ADDRESS,
+        LOOTBOXES_UNLOCK_TIMESTAMP,
+        NUMBER_IN_LOOTBOXES,
+        nftStartIndex,
+        MERKLE_ROOT,
+        SEASON_IS_PUBLIC,
+        SEASON_1_URI,
+    ]
+    await marketplace.connect(admin).addNewSeasons([season1]);
+    console.log("New season:");
+    console.log("--- season0.startTimestamp: ", startTimestamp);
+    console.log("--- season0.endTimestamp: ", endTimestamp);
+    console.log("--- season0.lootboxesNumber: ", LOOTBOXES_NUMBER);
+    console.log("--- season0.lootboxPrice: ", LOOTBOX_PRICE);
+    console.log("--- season0.lootboxesPerAddress: ", LOOTBOXES_PER_ADDRESS);
+    console.log("--- season0.lootboxesUnlockTimestamp: ", LOOTBOXES_UNLOCK_TIMESTAMP);
+    console.log("--- season0.nftNumberInLootbox: ", NUMBER_IN_LOOTBOXES);
+    console.log("--- season0.nftStartIndex: ", nftStartIndex);
+    console.log("--- season0.merkleRoot: ", MERKLE_ROOT);
+    console.log("--- season0.isPublic: ", SEASON_IS_PUBLIC);
+    console.log("--- season0.uri: ", SEASON_1_URI);
 
-async function deployVoting(admin, nftAddress, voteTokenAddress, voucherTokenAddress, votesPerCitizen) {
-    return await deploy(
-        "Voting",
-        admin,
-        nftAddress,
-        voteTokenAddress,
-        voucherTokenAddress,
-        votesPerCitizen,
-        admin.address,
-    );
-}
+    await token1.connect(admin).mint(admin.address, ADMIN_MINT);
+    await marketplace.connect(admin).addToWhiteList(seasonId, [admin.address]);
 
+    // admin buys a lootbox
+    await token1.connect(admin).approve(marketplace.address, LOOTBOX_PRICE);
+    await marketplace.connect(admin).buyLootbox(seasonId);
+
+    await token1.connect(admin).approve(marketplace.address, LOOTBOX_PRICE);
+    await marketplace.connect(admin).buyLootbox(seasonId);
+
+    await token1.connect(admin).approve(marketplace.address, LOOTBOX_PRICE);
+    await marketplace.connect(admin).buyLootbox(seasonId);
+}
 
 async function main() {
-    // Kovan
-    // let token1Address = "0x1E66e23920C4D0fd2B8102804D7E5b2Cc5Bfb10A";
-    // let token2Address = "0xF79660f21C004C31683f248b91C357cfe5833ACE";
-    // let rarityCalculatorAddress = "0x716Af5C2FE11d8C23eD2f2a8F2f89082a8254281";
-
-    // BSC Testnet
     // token1 - BUSD, token2 - Vote$
     let token1Address = "0x831EaB9ea77c339FFfE770140Bba8b7633C9Ca66";
     let rarityCalculatorAddress = "0xe47d896Cde01be4864eFdB0F91cF9ABB839978aE";
@@ -133,9 +147,6 @@ async function main() {
     let lootboxAddress;
     let marketplaceAddress;
     let voteTokenAddress;
-    let voucherTokenAddress;
-    let stakingAddress;
-    let votingAddress;
 
     const [admin] = await ethers.getSigners();
     console.log("Deploying contracts with the account:", admin.address);
@@ -160,22 +171,6 @@ async function main() {
     marketplaceAddress = marketplace.address;
     console.log("Marketplace:", marketplaceAddress);
 
-    let voucherToken = await deployVoucherToken(admin, ethers.constants.AddressZero);
-    voucherTokenAddress = voucherToken.address;
-    console.log("Voucher token:", voucherTokenAddress);
-
-    let staking = await deployStaking(admin, voteTokenAddress, voucherTokenAddress);
-    stakingAddress = staking.address;
-    console.log("Staking:", stakingAddress);
-
-    let voting = await deployVoting(admin, nftAddress, voteTokenAddress, voucherTokenAddress, VOTES_PER_CITIZEN);
-    votingAddress = voting.address;
-    console.log("Voting:", votingAddress);
-
-    let thriftbox = await deployThriftbox(admin, voteTokenAddress);
-    thriftboxAddress = thriftbox.address;
-    console.log("Thriftbox:", thriftboxAddress);
-
     await lootbox.connect(admin).updateConfig(
         [
             marketplaceAddress,
@@ -189,16 +184,9 @@ async function main() {
             rarityCalculatorAddress,
         ]
     )
-    await voucherToken.connect(admin).updateConfig(
-        [
-            stakingAddress,
-        ]
-    )
-    await voteToken.connect(admin).updateConfig(
-        [
-            votingAddress,
-        ]
-    )
+
+    // test data
+    await testData(marketplace, lootboxAddress, nftAddress, voteTokenAddress);
 }
 
 main()
