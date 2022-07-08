@@ -129,6 +129,11 @@ async function main() {
     let token1Address = "0x831EaB9ea77c339FFfE770140Bba8b7633C9Ca66";
     let rarityCalculatorAddress = "0xe47d896Cde01be4864eFdB0F91cF9ABB839978aE";
 
+    // BSC mainnet
+    // token1 - BUSD, token2 - Vote$
+    // let token1Address = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56";
+    // let rarityCalculatorAddress = "0x21d359be2283274ebc87216bf2a02f37a16a4d9d";
+
     let nftAddress;
     let lootboxAddress;
     let marketplaceAddress;
