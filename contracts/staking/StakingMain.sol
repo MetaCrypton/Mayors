@@ -11,7 +11,6 @@ import "./common/StakingStorage.sol";
 import "../common/ownership/Ownable.sol";
 import "../common/interfaces/IERC20.sol";
 import "../voucher/interfaces/IVoucher.sol";
-import "hardhat/console.sol";
 
 contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     function stakeVotes(uint256 votesNumber) external override {
@@ -51,12 +50,12 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         // remove stakes
         uint256 vouchersNumber;
         uint256 votesNumber;
-        for (uint256 i = startIndex; i < endIndex; i++) {
-            Stake memory stake = stakes[i];
+        for (uint256 i = endIndex; i > startIndex; i--) {
+            Stake memory stake = stakes[i - 1];
             vouchersNumber += _calculateVouchers(stake);
             votesNumber += stake.amount;
 
-            _removeStake(msg.sender, i);
+            _removeStake(msg.sender, i - 1);
         }
 
         uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(address(this));
