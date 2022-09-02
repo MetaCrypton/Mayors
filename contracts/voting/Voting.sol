@@ -457,12 +457,7 @@ contract Voting is IVoting, Ownable {
 
         Nominee[] storage nominees = _cityToNominees[cityId][season];
         uint256 nomineesLength = nominees.length;
-        uint256 randomIndex = random % nomineesLength;
-        for (uint256 i = randomIndex; i < nomineesLength; i++) {
-            votesCounter += nominees[i].votes;
-            if (winnerRate < votesCounter) return nominees[i].mayorId;
-        }
-        for (uint256 i = 0; i < randomIndex; i++) {
+        for (uint256 i = 0; i < nomineesLength; i++) {
             votesCounter += nominees[i].votes;
             if (winnerRate < votesCounter) return nominees[i].mayorId;
         }

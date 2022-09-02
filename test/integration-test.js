@@ -670,22 +670,30 @@ describe("Integration", function() {
         await staking.connect(admin).setThreshold(100);
 
         // create 5 stakes
-        for (let i = 0; i < 5; i++) {
-            await staking.connect(alice).stakeVotes(100);
+        for (let i = 0; i < 4; i++) {
+            await staking.connect(alice).stakeVotes(i*100 + 100);
             await ethers.provider.send('evm_increaseTime', [24*60*60]);
             await ethers.provider.send('evm_mine');
         }
 
         // before unstake
-        assert.equal(await voteToken.balanceOf(alice.address), 500);
-        assert.equal(await staking.connect(alice).getVotesAmount(0, 5), 500);
+        assert.equal(await voteToken.balanceOf(alice.address), 0);
+        assert.equal(await staking.connect(alice).getVotesAmount(0, 4), 1000);
 
-        // unstake
-        assert.equal(await staking.getStakesNumber(alice.address), 5);
-        await staking.connect(alice).unstakeVotes(0, 5);
+        // unstake 1
+        assert.equal(await staking.getStakesNumber(alice.address), 4);
+        await staking.connect(alice).unstakeVotes(1, 2);
+        assert.equal(await staking.getStakesNumber(alice.address), 2);
+
+        // after unstake 1
+        assert.equal(await voteToken.balanceOf(alice.address), 500);
+
+        // unstake 2
+        assert.equal(await staking.getStakesNumber(alice.address), 2);
+        await staking.connect(alice).unstakeVotes(0, 2);
         assert.equal(await staking.getStakesNumber(alice.address), 0);
 
-        // after unstake
+        // after unstake 2
         assert.equal(await voteToken.balanceOf(alice.address), 1000);
         await expect(staking.connect(alice).getVotesAmount(0, 1)).to.be.revertedWith('WrongEndIndex()');
     });

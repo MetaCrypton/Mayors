@@ -43,20 +43,8 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
     }
 
     function unstakeVotes(uint256 startIndex, uint256 number) external override {
-        Stake[] storage stakes = _stakes[msg.sender];
-        uint256 endIndex = startIndex + number;
-        if (endIndex > stakes.length) revert StakingErrors.WrongEndIndex();
-
-        // remove stakes
-        uint256 vouchersNumber;
-        uint256 votesNumber;
-        for (uint256 i = endIndex; i > startIndex; i--) {
-            Stake memory stake = stakes[i - 1];
-            vouchersNumber += _calculateVouchers(stake);
-            votesNumber += stake.amount;
-
-            _removeStake(msg.sender, i - 1);
-        }
+        // remove stakes(and staker if stakes is empty)
+        (uint256 vouchersNumber, uint256 votesNumber) = _removeStakes(msg.sender, startIndex, number);
 
         uint256 votesBalance = IERC20(_config.voteAddress).balanceOf(address(this));
         if (votesBalance < votesNumber) revert StakingErrors.NotEnoughVotes();
@@ -150,17 +138,36 @@ contract StakingMain is IStakingMain, IStakingEvents, Ownable, StakingStorage {
         emit StakeAdded(staker, startDate, amount);
     }
 
-    function _removeStake(address staker, uint256 index) private {
-        // remove a stake
+    function _removeStakes(
+        address staker,
+        uint256 startIndex,
+        uint256 number
+    ) private returns (uint256 vouchersNumber, uint256 votesNumber) {
         Stake[] storage stakes = _stakes[staker];
-        Stake memory stake = stakes[index];
-        stakes[index] = stakes[stakes.length - 1];
-        stakes.pop();
-        emit StakeRemoved(msg.sender, stake.startDate, stake.amount);
 
-        // remove a staker
-        if (stakes.length != 0) return;
+        uint256 endIndex = startIndex + number;
+        if (endIndex > stakes.length) revert StakingErrors.WrongEndIndex();
 
+        for (uint256 i = endIndex; i > startIndex; i -= 1) {
+            Stake memory stake = stakes[i - 1];
+
+            // calc vouchers and votes amounts
+            vouchersNumber += _calculateVouchers(stake);
+            votesNumber += stake.amount;
+
+            // remove stake
+            stakes[i - 1] = stakes[stakes.length - 1];
+            stakes.pop();
+            emit StakeRemoved(staker, stake.startDate, stake.amount);
+        }
+
+        // remove staker
+        if (stakes.length == 0) {
+            _removeStaker(staker);
+        }
+    }
+
+    function _removeStaker(address staker) private {
         delete _stakes[staker];
 
         uint256 length = _stakers.length;

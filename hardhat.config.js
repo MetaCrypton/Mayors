@@ -47,6 +47,11 @@ module.exports = {
       accounts: [`${PRIVATE_KEY}`],
       timeout: 100000
     },
+    bsc_mainnet: {
+      url: "https://bsc-dataseed.binance.org/",
+      accounts: [`${PRIVATE_KEY}`],
+      gasPrice: 5e9
+    },
   },
   mocha: {
     timeout: 20000
